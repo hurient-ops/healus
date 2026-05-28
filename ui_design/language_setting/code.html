@@ -1,0 +1,301 @@
+<!DOCTYPE html><html lang="ko" style=""><head>
+<script>
+  (function() {
+    const CONFIG_USE_TIMER = true; 
+    const isInjecting = localStorage.getItem('isInjecting') === 'true';
+    const currentPath = window.location.pathname;
+    const preventPaths = ['meal_injection', 'add_injection', 'dining', 'exercise'];
+    const isPreventPath = preventPaths.some(path => currentPath.includes(path));
+    
+    function showToast(message) {
+      const toast = document.createElement('div');
+      toast.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 bg-slate-800/90 text-white text-[13px] px-5 py-3 rounded-full shadow-lg z-[9999] transition-all duration-300 opacity-0 transform translate-y-2 pointer-events-none whitespace-nowrap font-medium';
+      toast.innerText = message;
+      document.body.appendChild(toast);
+      
+      toast.offsetHeight;
+      toast.classList.remove('opacity-0', 'translate-y-2');
+      toast.classList.add('opacity-100', 'translate-y-0');
+      
+      setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 2000);
+    }
+    
+    if (isInjecting && isPreventPath) {
+      localStorage.setItem('showToastMsg', '주입 중에서 수행할 수 없습니다');
+      window.location.href = '../dashboard/code.html';
+      return;
+    }
+    
+    let activeTimer = null;
+    
+    function checkInjectingStatus() {
+      const activeInjecting = localStorage.getItem('isInjecting') === 'true';
+      if (!activeInjecting) {
+        if (activeTimer) {
+          clearTimeout(activeTimer);
+          activeTimer = null;
+        }
+        return;
+      }
+      
+      const endTime = parseInt(localStorage.getItem('injectingEndTime') || '0', 10);
+      const now = Date.now();
+      const useTimer = CONFIG_USE_TIMER && (localStorage.getItem('CONFIG_USE_TIMER') !== 'false');
+      
+      if (useTimer && endTime > 0) {
+        if (now >= endTime) {
+          triggerComplete();
+        } else {
+          const delay = endTime - now;
+          if (activeTimer) clearTimeout(activeTimer);
+          activeTimer = setTimeout(triggerComplete, delay);
+        }
+      }
+    }
+    
+    function triggerComplete() {
+      console.log('BLE 수신 시뮬레이션: BT_INJ_STOP_IND (0x3B) 주입 완료 수신');
+      localStorage.setItem('isInjecting', 'false');
+      localStorage.removeItem('injectingEndTime');
+      localStorage.setItem('showCompleteModal', 'true');
+      window.location.href = '../dashboard/code.html';
+    }
+    
+    function init() {
+      const pendingToast = localStorage.getItem('showToastMsg');
+      if (pendingToast) {
+        localStorage.removeItem('showToastMsg');
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', () => showToast(pendingToast));
+        } else {
+          showToast(pendingToast);
+        }
+      }
+      checkInjectingStatus();
+    }
+    
+    init();
+    
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'isInjecting') {
+        const updatedInjecting = localStorage.getItem('isInjecting') === 'true';
+        if (updatedInjecting && isPreventPath) {
+          localStorage.setItem('showToastMsg', '주입 중에서 수행할 수 없습니다');
+          window.location.href = '../dashboard/code.html';
+        } else if (!updatedInjecting && isInjecting && !isPreventPath) {
+          localStorage.setItem('showCompleteModal', 'true');
+          window.location.href = '../dashboard/code.html';
+        }
+      }
+      if (e.key === 'isInjecting' || e.key === 'injectingEndTime' || e.key === 'CONFIG_USE_TIMER') {
+        checkInjectingStatus();
+      }
+    });
+  })();
+</script>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>식사 설정 - Heal Us</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&amp;family=Manrope:wght@600;700;800&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">tailwind.config = {darkMode: "class", theme: {extend: {colors: {background: "#f8fafa", "error-container": "#ffdad6", "secondary-fixed-dim": "#ffb1c5", "secondary-container": "#fd6c9c", "tertiary-fixed": "#d4e6e5", "primary-fixed-dim": "#90d2d5", "on-secondary-container": "#6e0034", "on-primary-container": "#f3ffff", "on-primary-fixed-variant": "#004f52", "on-background": "#191c1d", "surface-container-high": "#e6e8e9", "on-error-container": "#93000a", "surface-container": "#eceeee", "on-primary": "#ffffff", "surface-container-low": "#f2f4f4", "inverse-surface": "#2e3131", "inverse-primary": "#90d2d5", surface: "#f8fafa", "primary-fixed": "#aceef1", "on-tertiary-fixed-variant": "#3a4a49", error: "#ba1a1a", "outline-variant": "#bfc8c8", "tertiary-fixed-dim": "#b8cac9", "surface-dim": "#d8dada", "surface-container-lowest": "#ffffff", "on-tertiary-container": "#f3fffe", "on-secondary": "#ffffff", "secondary-fixed": "#ffd9e1", secondary: "#ab2c5d", "surface-variant": "#e1e3e3", "on-surface": "#191c1d", "surface-tint": "#22686b", "inverse-on-surface": "#eff1f1", tertiary: "#4f5f5f", "surface-container-highest": "#e1e3e3", primary: "#1f6568", "on-surface-variant": "#3f4849", "on-secondary-fixed": "#3f001b", "on-primary-fixed": "#002021", "on-tertiary": "#ffffff", "on-tertiary-fixed": "#0e1e1e", outline: "#6f7979", "on-error": "#ffffff", "tertiary-container": "#677877", "surface-bright": "#f8fafa", "primary-container": "#3c7e81", "on-secondary-fixed-variant": "#8b0e45"}, borderRadius: {DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px"}, spacing: {md: "24px", sm: "12px", lg: "40px", gutter: "16px", base: "8px", xs: "4px", "margin-mobile": "16px", xl: "32px", xxl: "48px", xxs: "4px"}, fontFamily: {"data-lg": ["Nunito Sans"], "body-lg": ["Noto Sans"], "label-sm": ["Noto Sans"], "body-md": ["Noto Sans"], "headline-md": ["Nunito Sans"], "display-lg": ["Nunito Sans"], "headline-lg": ["Nunito Sans"], "label-md": ["Inter"], "label-lg": ["Inter"], "title-lg": ["Nunito Sans"], headline: ["Noto Sans"], display: ["Noto Sans"], body: ["Noto Sans"], label: ["Noto Sans"]}, fontSize: {"data-lg": ["48px", {lineHeight: "48px", fontWeight: "800"}], "body-lg": ["18px", {lineHeight: "28px", fontWeight: "400"}], "label-sm": ["13px", {lineHeight: "16px", letterSpacing: "0.03em", fontWeight: "600"}], "body-md": ["16px", {lineHeight: "24px", fontWeight: "400"}], "headline-md": ["24px", {lineHeight: "32px", fontWeight: "600"}], "display-lg": ["32px", {lineHeight: "40px", letterSpacing: "-0.02em", fontWeight: "700"}], "headline-lg": ["32px", {lineHeight: "40px", fontWeight: "400"}], "label-md": ["12px", {lineHeight: "16px", fontWeight: "500"}], "label-lg": ["14px", {lineHeight: "20px", fontWeight: "500"}], "title-lg": ["22px", {lineHeight: "28px", fontWeight: "500"}]}}}};</script>
+<style>
+        body {
+            width: 100%;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f8fafa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            padding: 12px 0;
+            box-sizing: border-box;
+        }
+    </style>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"></head>
+<body class="text-on-background font-body-md">
+<div class="mx-auto w-[390px] max-w-[calc(100vw-32px)] h-[884px] max-h-[calc(100vh-24px)] bg-[#f8fafa] relative overflow-hidden shadow-[0_0_20px_rgba(0,0,0,0.08)] rounded-[24px] flex flex-col">
+<!-- TopAppBar -->
+<header class="bg-white text-teal-600 font-['Manrope'] antialiased tracking-tight full-width top-0 border-b border-teal-50/50 shadow-[0_2px_15px_-3px_rgba(80,145,148,0.08)] grid grid-cols-[1fr_auto_1fr] items-center w-full px-4 z-50 sticky pt-[48px] h-[104px] shrink-0">
+<button type="button" onclick="window.location.href='../main_setting/code.html'" class="p-2 hover:bg-teal-50 rounded-full transition-colors active:scale-95 text-primary justify-self-start">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 class="text-xl font-bold tracking-tight text-teal-700 whitespace-nowrap">언 어</h1>
+<div class="flex gap-1 justify-self-end">
+<button type="button" onclick="resetLanguageSelection()" class="p-2 hover:bg-teal-50 rounded-full transition-colors active:scale-95 text-primary">
+<span class="material-symbols-outlined">sync</span>
+</button>
+<button type="button" class="p-2 hover:bg-teal-50 rounded-full transition-colors active:scale-95 text-primary">
+<span class="material-symbols-outlined">bluetooth</span>
+</button>
+</div></header>
+<main class="w-full px-margin-mobile flex flex-col gap-3 pt-4 pb-20 overflow-y-auto flex-1 min-h-0">
+<!-- Explanation Box -->
+<!-- Form Sections -->
+<div class="flex flex-col items-center relative w-full justify-start">
+<div class="w-full max-w-[280px] relative">
+<button class="w-full bg-white border border-outline-variant/30 rounded-[12px] px-5 py-4 flex items-center justify-between shadow-sm text-[#191c1d] hover:bg-surface-bright transition-colors active:scale-95" id="language-select-btn">
+<div class="flex items-center gap-3 text-[16px] font-medium" id="selected-language">
+<span class="text-xl">🇰🇷</span>
+<span class="">한국어</span>
+</div>
+<span class="material-symbols-outlined text-outline">expand_more</span>
+</button>
+<div class="absolute top-full mt-2 w-full bg-white rounded-[12px] shadow-md border border-outline-variant/30 overflow-hidden z-50 flex-col hidden" id="language-dropdown">
+<button class="lang-option w-full px-5 py-3.5 flex items-center gap-3 hover:bg-surface-container-low transition-colors text-left text-[16px] font-medium text-[#191c1d]" data-flag="🇰🇷" data-lang="한국어">
+<span class="text-xl">🇰🇷</span>
+<span class="">한국어</span>
+</button>
+<button class="lang-option w-full px-5 py-3.5 flex items-center gap-3 hover:bg-surface-container-low transition-colors text-left text-[16px] font-medium text-[#191c1d]" data-flag="🇺🇸" data-lang="English">
+<span class="text-xl">🇺🇸</span>
+<span class="">English</span>
+</button>
+<button class="lang-option w-full px-5 py-3.5 flex items-center gap-3 hover:bg-surface-container-low transition-colors text-left text-[16px] font-medium text-[#191c1d]" data-flag="🇨🇳" data-lang="中文">
+<span class="text-xl">🇨🇳</span>
+<span class="">中文</span>
+</button>
+<button class="lang-option w-full px-5 py-3.5 flex items-center gap-3 hover:bg-surface-container-low transition-colors text-left text-[16px] font-medium text-[#191c1d]" data-flag="🇹🇷" data-lang="Türkçe">
+<span class="text-xl">🇹🇷</span>
+<span class="">Türkçe</span>
+</button>
+</div>
+</div>
+</div><div class="flex justify-center w-full py-4">
+<img alt="Global partners in health featuring flags of South Korea, China, United States, and Turkey" class="max-w-full h-auto rounded-xl" src="./images/language_setting.png">
+</div>
+<!-- Action Buttons -->
+<div class="flex gap-sm mt-2 w-full">
+<button id="save-language-btn" type="button" class="flex-1 bg-primary text-on-primary rounded-full hover:bg-primary-container hover:text-on-primary-container transition-colors active:scale-95 text-[16px] font-bold py-4">저장</button>
+<button type="button" class="flex-1 bg-surface-container-high text-on-surface rounded-full border border-outline-variant hover:bg-surface-variant transition-colors active:scale-95 text-[16px] font-bold py-4" onclick="window.location.href='../main_setting/code.html'">닫기</button>
+</div>
+</main><div class="w-full h-[1px] bg-outline-variant/30 absolute bottom-[64px] z-50"></div><nav class="w-full border-t border-outline-variant/30 flex items-center justify-around px-4 z-50 absolute bottom-0 bg-white h-[64px] pt-1 pb-2">
+<a class="flex flex-col items-center gap-1 text-on-surface-variant hover:text-primary transition-colors cursor-pointer text-decoration-none" href="../dashboard/code.html">
+<span class="material-symbols-outlined">home</span>
+<span class="text-[11px] font-medium font-['Noto_Sans']">홈</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-primary cursor-pointer text-decoration-none" href="../main_setting/code.html">
+<span class="material-symbols-outlined" style="font-variation-settings: &quot;FILL&quot; 1;">settings</span>
+<span class="text-[11px] font-medium font-['Noto_Sans']">설정</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-on-surface-variant hover:text-primary transition-colors cursor-pointer text-decoration-none" href="../history/code.html">
+<span class="material-symbols-outlined">history</span>
+<span class="text-[11px] font-medium font-['Noto_Sans']">기록</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-on-surface-variant hover:text-primary transition-colors cursor-pointer text-decoration-none" href="../infomation/code.html">
+<span class="material-symbols-outlined">info</span>
+<span class="text-[11px] font-medium font-['Noto_Sans']">정보</span>
+</a>
+</nav>
+<script>
+    const defaultLanguage = { flag: '🇰🇷', lang: '한국어' };
+    const langBtn = document.getElementById('language-select-btn');
+    const langDropdown = document.getElementById('language-dropdown');
+    const selectedLang = document.getElementById('selected-language');
+    const langOptions = document.querySelectorAll('.lang-option');
+    const saveButton = document.getElementById('save-language-btn');
+
+    let currentLanguage = { ...defaultLanguage };
+
+    function renderLanguage(language) {
+        currentLanguage = { ...language };
+        selectedLang.innerHTML = `<span class="text-xl">${language.flag}</span><span>${language.lang}</span>`;
+    }
+
+    function closeLanguageDropdown() {
+        langDropdown.classList.add('hidden');
+        langDropdown.classList.remove('flex');
+    }
+
+    function resetLanguageSelection() {
+        renderLanguage(defaultLanguage);
+        closeLanguageDropdown();
+    }
+
+    async function sendSelectedLanguageOverBluetooth(language) {
+        if (!navigator.bluetooth) {
+            console.info('Web Bluetooth is not available in this browser.');
+            return false;
+        }
+
+        try {
+            const device = await navigator.bluetooth.requestDevice({
+                acceptAllDevices: true
+            });
+
+            if (!device.gatt) {
+                throw new Error('This Bluetooth device does not expose GATT services.');
+            }
+
+            const server = await device.gatt.connect();
+            const services = await server.getPrimaryServices();
+
+            for (const service of services) {
+                const characteristics = await service.getCharacteristics();
+
+                for (const characteristic of characteristics) {
+                    if (characteristic.properties.write || characteristic.properties.writeWithoutResponse) {
+                        const payload = JSON.stringify({
+                            type: 'language_selection',
+                            language: language.lang,
+                            locale: language.lang === '한국어' ? 'ko' : language.lang === 'English' ? 'en' : language.lang === '中文' ? 'zh' : 'tr',
+                            timestamp: new Date().toISOString()
+                        });
+
+                        await characteristic.writeValue(new TextEncoder().encode(payload));
+                        return true;
+                    }
+                }
+            }
+
+            throw new Error('No writable Bluetooth characteristic was found.');
+        } catch (error) {
+            console.warn('Bluetooth transmission failed.', error);
+            return false;
+        }
+    }
+
+    async function saveSelectedLanguage() {
+        saveButton.disabled = true;
+        try {
+            await sendSelectedLanguageOverBluetooth(currentLanguage);
+        } finally {
+            saveButton.disabled = false;
+        }
+    }
+
+    function handleLanguageSelection(option) {
+        const selectedLanguage = {
+            flag: option.getAttribute('data-flag'),
+            lang: option.getAttribute('data-lang')
+        };
+
+        renderLanguage(selectedLanguage);
+        closeLanguageDropdown();
+    }
+
+    langBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        langDropdown.classList.toggle('hidden');
+        langDropdown.classList.toggle('flex');
+    });
+
+    document.addEventListener('click', closeLanguageDropdown);
+
+    langOptions.forEach(option => {
+        option.addEventListener('click', (e) => {
+            handleLanguageSelection(e.currentTarget);
+        });
+    });
+
+    saveButton.addEventListener('click', saveSelectedLanguage);
+
+    resetLanguageSelection();
+</script>
+</div>
+</body></html>

@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+
+<html lang="ko"><head>
+<script>
+  (function() {
+    const CONFIG_USE_TIMER = true; 
+    const isInjecting = localStorage.getItem('isInjecting') === 'true';
+    const currentPath = window.location.pathname;
+    const preventPaths = ['meal_injection', 'add_injection', 'dining', 'exercise'];
+    const isPreventPath = preventPaths.some(path => currentPath.includes(path));
+    
+    function showToast(message) {
+      const toast = document.createElement('div');
+      toast.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 bg-slate-800/90 text-white text-[13px] px-5 py-3 rounded-full shadow-lg z-[9999] transition-all duration-300 opacity-0 transform translate-y-2 pointer-events-none whitespace-nowrap font-medium';
+      toast.innerText = message;
+      document.body.appendChild(toast);
+      
+      toast.offsetHeight;
+      toast.classList.remove('opacity-0', 'translate-y-2');
+      toast.classList.add('opacity-100', 'translate-y-0');
+      
+      setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 2000);
+    }
+    
+    if (isInjecting && isPreventPath) {
+      localStorage.setItem('showToastMsg', '주입 중에서 수행할 수 없습니다');
+      window.location.href = '../dashboard/code.html';
+      return;
+    }
+    
+    let activeTimer = null;
+    
+    function checkInjectingStatus() {
+      const activeInjecting = localStorage.getItem('isInjecting') === 'true';
+      if (!activeInjecting) {
+        if (activeTimer) {
+          clearTimeout(activeTimer);
+          activeTimer = null;
+        }
+        return;
+      }
+      
+      const endTime = parseInt(localStorage.getItem('injectingEndTime') || '0', 10);
+      const now = Date.now();
+      const useTimer = CONFIG_USE_TIMER && (localStorage.getItem('CONFIG_USE_TIMER') !== 'false');
+      
+      if (useTimer && endTime > 0) {
+        if (now >= endTime) {
+          triggerComplete();
+        } else {
+          const delay = endTime - now;
+          if (activeTimer) clearTimeout(activeTimer);
+          activeTimer = setTimeout(triggerComplete, delay);
+        }
+      }
+    }
+    
+    function triggerComplete() {
+      console.log('BLE 수신 시뮬레이션: BT_INJ_STOP_IND (0x3B) 주입 완료 수신');
+      localStorage.setItem('isInjecting', 'false');
+      localStorage.removeItem('injectingEndTime');
+      localStorage.setItem('showCompleteModal', 'true');
+      window.location.href = '../dashboard/code.html';
+    }
+    
+    function init() {
+      const pendingToast = localStorage.getItem('showToastMsg');
+      if (pendingToast) {
+        localStorage.removeItem('showToastMsg');
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', () => showToast(pendingToast));
+        } else {
+          showToast(pendingToast);
+        }
+      }
+      checkInjectingStatus();
+    }
+    
+    init();
+    
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'isInjecting') {
+        const updatedInjecting = localStorage.getItem('isInjecting') === 'true';
+        if (updatedInjecting && isPreventPath) {
+          localStorage.setItem('showToastMsg', '주입 중에서 수행할 수 없습니다');
+          window.location.href = '../dashboard/code.html';
+        } else if (!updatedInjecting && isInjecting && !isPreventPath) {
+          localStorage.setItem('showCompleteModal', 'true');
+          window.location.href = '../dashboard/code.html';
+        }
+      }
+      if (e.key === 'isInjecting' || e.key === 'injectingEndTime' || e.key === 'CONFIG_USE_TIMER') {
+        checkInjectingStatus();
+      }
+    });
+  })();
+</script>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>기초 설정</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&amp;family=Manrope:wght@600;700;800&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">tailwind.config = {darkMode: "class", theme: {extend: {colors: {background: "#f8fafa", "error-container": "#ffdad6", "secondary-fixed-dim": "#ffb1c5", "secondary-container": "#fd6c9c", "tertiary-fixed": "#d4e6e5", "primary-fixed-dim": "#90d2d5", "on-secondary-container": "#6e0034", "on-primary-container": "#f3ffff", "on-primary-fixed-variant": "#004f52", "on-background": "#191c1d", "surface-container-high": "#e6e8e9", "on-error-container": "#93000a", "surface-container": "#eceeee", "on-primary": "#ffffff", "surface-container-low": "#f2f4f4", "inverse-surface": "#2e3131", "inverse-primary": "#90d2d5", surface: "#f8fafa", "primary-fixed": "#aceef1", "on-tertiary-fixed-variant": "#3a4a49", error: "#ba1a1a", "outline-variant": "#bfc8c8", "tertiary-fixed-dim": "#b8cac9", "surface-dim": "#d8dada", "surface-container-lowest": "#ffffff", "on-tertiary-container": "#f3fffe", "on-secondary": "#ffffff", "secondary-fixed": "#ffd9e1", secondary: "#ab2c5d", "surface-variant": "#e1e3e3", "on-surface": "#191c1d", "surface-tint": "#22686b", "inverse-on-surface": "#eff1f1", tertiary: "#4f5f5f", "surface-container-highest": "#e1e3e3", primary: "#1f6568", "on-surface-variant": "#3f4849", "on-secondary-fixed": "#3f001b", "on-primary-fixed": "#002021", "on-tertiary": "#ffffff", "on-tertiary-fixed": "#0e1e1e", outline: "#6f7979", "on-error": "#ffffff", "tertiary-container": "#677877", "surface-bright": "#f8fafa", "primary-container": "#3c7e81", "on-secondary-fixed-variant": "#8b0e45"}, borderRadius: {DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px"}, spacing: {md: "24px", sm: "12px", lg: "40px", gutter: "16px", base: "8px", xs: "4px", "margin-mobile": "16px", xl: "32px", xxl: "48px", xxs: "4px"}, fontFamily: {"data-lg": ["Nunito Sans"], "body-lg": ["Noto Sans"], "label-sm": ["Noto Sans"], "body-md": ["Noto Sans"], "headline-md": ["Nunito Sans"], "display-lg": ["Nunito Sans"], "headline-lg": ["Nunito Sans"], "label-md": ["Inter"], "label-lg": ["Inter"], "title-lg": ["Nunito Sans"], headline: ["Noto Sans"], display: ["Noto Sans"], body: ["Noto Sans"], label: ["Noto Sans"]}, fontSize: {"data-lg": ["48px", {lineHeight: "48px", fontWeight: "800"}], "body-lg": ["18px", {lineHeight: "28px", fontWeight: "400"}], "label-sm": ["13px", {lineHeight: "16px", letterSpacing: "0.03em", fontWeight: "600"}], "body-md": ["16px", {lineHeight: "24px", fontWeight: "400"}], "headline-md": ["24px", {lineHeight: "32px", fontWeight: "600"}], "display-lg": ["32px", {lineHeight: "40px", letterSpacing: "-0.02em", fontWeight: "700"}], "headline-lg": ["32px", {lineHeight: "40px", fontWeight: "400"}], "label-md": ["12px", {lineHeight: "16px", fontWeight: "500"}], "label-lg": ["14px", {lineHeight: "20px", fontWeight: "500"}], "title-lg": ["22px", {lineHeight: "28px", fontWeight: "500"}]}}}};</script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/></head>
+<body class="bg-surface-container-high text-on-background min-h-screen flex items-center justify-center antialiased">
+<div class="w-[390px] h-[884px] bg-background relative overflow-hidden flex flex-col shadow-2xl">
+<!-- TopAppBar -->
+<header class="shrink-0 bg-white dark:bg-slate-950 text-teal-600 dark:text-teal-400 font-['Manrope'] antialiased tracking-tight border-b border-teal-50/50 dark:border-teal-900/20 shadow-[0_2px_15px_-3px_rgba(80,145,148,0.08)] flex justify-between items-center w-full px-4 z-50 mt-12 h-12">
+<a href="../main_setting/code.html" class="flex items-center hover:bg-teal-50 dark:hover:bg-teal-900/30 transition-colors active:scale-95 transition-transform duration-150 p-2 rounded-full cursor-pointer"><span class="material-symbols-outlined">arrow_back</span></a>
+<h1 class="text-xl font-bold tracking-tight text-teal-700 dark:text-teal-300">기초 설정</h1>
+<div class="flex items-center gap-1">
+<div class="flex items-center hover:bg-teal-50 dark:hover:bg-teal-900/30 transition-colors active:scale-95 transition-transform duration-150 p-2 rounded-full cursor-pointer" onclick="window.location.reload()"><span class="material-symbols-outlined">sync</span></div>
+<div class="flex items-center hover:bg-teal-50 dark:hover:bg-teal-900/30 transition-colors active:scale-95 transition-transform duration-150 p-2 rounded-full cursor-pointer"><span class="material-symbols-outlined">bluetooth</span></div>
+</div>
+</header>
+<main class="flex-1 px-margin-mobile w-full py-1 pb-40 overflow-y-auto">
+<!-- Info Box -->
+<div class="rounded-lg p-sm shadow-sm border border-outline-variant/30 flex items-start gap-3 mb-1 bg-primary-fixed"><div class="flex items-start gap-3 w-full">
+<span class="material-symbols-outlined text-primary mt-1" data-icon="info">info</span>
+<div class="flex-1 flex flex-col gap-2">
+<p class="font-body-md text-on-surface-variant font-semibold text-[14px]">기초 설정은 24시간을 기본으로 2가지 방법으로 설정가능</p>
+<ul class="list-disc list-inside space-y-1 font-body-md text-on-surface-variant text-[13px]">
+<li class="">전체 24시간을 1시간 단위로 동일양 주입 설정</li>
+<li class="">1시간 단위로 인슐린을 필요로 하는 시간대만 주입 설정</li>
+</ul>
+</div>
+</div></div>
+<!-- Basal Setting Input Group -->
+<div class="bg-surface rounded-lg p-sm shadow-sm border border-outline-variant/50 mb-1 p-2 bg-primary-fixed">
+<div class="flex justify-end mb-1">
+<span class="font-label-sm text-label-sm text-on-surface-variant">최대: 3 (단위: U)</span>
+</div>
+<div class="flex items-center justify-between gap-4">
+<span class="font-label-sm text-label-sm text-on-surface whitespace-nowrap">기초 설정</span>
+<div class="flex-1 flex items-center gap-2">
+<div class="flex-1 flex items-center gap-1.5">
+<div class="relative flex-1">
+<select class="w-full appearance-none bg-surface-container-lowest border border-outline-variant rounded p-2 pr-8 font-body-md text-body-md text-right text-on-surface focus:ring-1 focus:ring-primary focus:border-primary outline-none" id="integer-select">
+<option value="0">0</option>
+<option value="1">1</option>
+<option value="2">2</option>
+<option value="3">3</option>
+</select>
+</div>
+<span class="font-body-md text-body-md text-on-surface/50">.</span>
+<div class="relative w-20">
+<select class="w-full appearance-none bg-surface-container-lowest border border-outline-variant rounded p-2 pr-8 font-body-md text-body-md text-left text-on-surface focus:ring-1 focus:ring-primary focus:border-primary outline-none" id="decimal-select">
+<option value="00">00</option>
+<option value="05">05</option>
+<option value="10">10</option>
+<option value="15">15</option>
+<option value="20">20</option>
+<option value="25">25</option>
+<option value="30">30</option>
+<option value="35">35</option>
+<option value="40">40</option>
+<option value="45">45</option>
+<option value="50">50</option>
+<option value="55">55</option>
+<option value="60">60</option>
+<option value="65">65</option>
+<option value="70">70</option>
+<option value="75">75</option>
+<option value="80">80</option>
+<option value="85">85</option>
+<option value="90">90</option>
+<option value="95">95</option>
+</select>
+</div>
+</div>
+<span class="font-body-md text-body-md text-on-surface-variant">U</span>
+</div>
+<button class="bg-primary text-on-primary font-label-sm text-label-sm px-4 py-2 rounded-full shadow-sm hover:bg-primary-container active:scale-95 transition-all" id="set-btn">설정</button>
+</div>
+</div>
+<!-- Time Setting Section -->
+<div>
+<div class="flex items-center justify-between mb-2 mt-2">
+<h3 class="font-label-sm text-label-sm text-on-surface">시간 설정</h3>
+<div class="flex gap-2">
+<button class="bg-surface-container-highest text-on-surface-variant font-label-sm text-label-sm px-3 py-1.5 rounded-full border border-outline-variant hover:bg-surface-dim transition-colors font-bold font-headline-md" id="select-all-btn">전체 선택</button>
+<button class="bg-surface-container-highest text-on-surface-variant font-label-sm text-label-sm px-3 py-1.5 rounded-full border border-outline-variant hover:bg-surface-dim transition-colors font-bold font-headline-md" id="deselect-all-btn">전체 해제</button>
+</div>
+</div>
+<!-- 24 Hour Grid -->
+<div class="grid grid-cols-4 gap-1.5 mb-2" id="time-grid">
+<!-- Dynamically populated by JS -->
+</div>
+</div>
+</main>
+<!-- Bottom Action Buttons -->
+<div class="w-full bg-background/95 backdrop-blur-md border-t border-outline-variant/30 p-4 z-40 flex justify-between gap-4 absolute left-0 right-0" style="bottom: 64px;">
+<button class="flex-1 bg-[#1f6568] text-white rounded-full hover:bg-primary-container transition-all shadow-md active:scale-95 text-[16px] font-bold py-4" id="save-btn">저장</button>
+<a class="flex-1 bg-[#e0e3e3] text-[#191c1d] rounded-full hover:bg-surface-variant transition-all shadow-sm active:scale-95 text-[16px] font-bold py-4 flex items-center justify-center" href="../main_setting/code.html">닫기</a>
+</div>
+<div class="w-full h-[1px] bg-outline-variant/30 absolute bottom-[64px] z-50"></div>
+<nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-[390px] bg-surface-container-lowest border-t border-outline-variant h-16 flex items-center justify-around px-4 z-50">
+<a class="flex flex-col items-center gap-1 text-on-surface-variant hover:text-primary transition-colors font-bold font-headline-md" href="../dashboard/code.html"><span class="material-symbols-outlined text-[24px]">home</span><span class="text-[10px] font-medium font-label">홈</span></a>
+<a class="flex flex-col items-center gap-1 text-primary" href="../main_setting/code.html"><span class="material-symbols-outlined text-[24px]" style='font-variation-settings: "FILL" 1;'>settings</span><span class="text-[10px] font-medium font-label">설정</span></a>
+<a class="flex flex-col items-center gap-1 text-on-surface-variant hover:text-primary transition-colors font-bold font-headline-md" href="../history/code.html"><span class="material-symbols-outlined text-[24px]">history</span><span class="text-[10px] font-medium font-label">기록</span></a>
+<a class="flex flex-col items-center gap-1 text-on-surface-variant hover:text-primary transition-colors" href="../infomation/code.html">
+<span class="material-symbols-outlined text-[24px]">info</span>
+<span class="text-[10px] font-medium font-label">정보</span>
+</a>
+</nav>
+</div>
+<script>
+  const STORAGE_KEY = 'basal_setting_values';
+  const LAST_INPUT_KEY = 'basal_setting_last_input';
+  const DEFAULT_BASAL_VALUE = '0.00';
+  const VALID_DECIMALS = ['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55', '60', '65', '70', '75', '80', '85', '90', '95'];
+
+  const state = {
+    basalRates: [],
+    selectedSlots: new Set()
+  };
+
+  function createBasalRate(id, value = DEFAULT_BASAL_VALUE) {
+    return {
+      id,
+      label: `${id}~${id + 1}`,
+      value
+    };
+  }
+
+  function getStoredBasalValues() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        return null;
+      }
+
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed) || parsed.length !== 24) {
+        return null;
+      }
+
+      return parsed.map(value => typeof value === 'string' ? value : DEFAULT_BASAL_VALUE);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function saveBasalValues(values) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(values));
+  }
+
+  function getStoredLastInput() {
+    try {
+      const raw = localStorage.getItem(LAST_INPUT_KEY);
+      if (!raw) {
+        return DEFAULT_BASAL_VALUE;
+      }
+
+      const nextValue = String(raw).trim();
+      const [intPart, decPart] = nextValue.split('.');
+
+      if (!/^[0-3]$/.test(intPart) || !VALID_DECIMALS.includes(decPart || '')) {
+        return DEFAULT_BASAL_VALUE;
+      }
+
+      return nextValue;
+    } catch (error) {
+      return DEFAULT_BASAL_VALUE;
+    }
+  }
+
+  function saveLastInput(value) {
+    localStorage.setItem(LAST_INPUT_KEY, value);
+  }
+
+  function initializeBasalRates(values = getStoredBasalValues()) {
+    const nextValues = values && values.length === 24
+      ? values
+      : Array.from({ length: 24 }, () => DEFAULT_BASAL_VALUE);
+
+    state.basalRates = nextValues.map((value, index) => createBasalRate(index, value));
+  }
+
+  function applyBleBasalData(values) {
+    if (!Array.isArray(values) || values.length !== 24) {
+      return;
+    }
+
+    initializeBasalRates(values);
+    saveBasalValues(values);
+    renderGrid();
+  }
+
+  function restoreLastInputValue() {
+    const value = getStoredLastInput();
+    const [intPart, decPart] = value.split('.');
+
+    const integerSelect = document.getElementById('integer-select');
+    const decimalSelect = document.getElementById('decimal-select');
+
+    if (integerSelect) {
+      integerSelect.value = intPart;
+    }
+
+    if (decimalSelect) {
+      decimalSelect.value = decPart;
+    }
+  }
+
+  function renderGrid() {
+    const container = document.getElementById('time-grid');
+    container.innerHTML = '';
+
+    state.basalRates.forEach(rate => {
+      const isSelected = state.selectedSlots.has(rate.id);
+      const bgClass = isSelected
+        ? 'bg-[#2A6062] border-[#2A6062]'
+        : 'bg-surface-container-low border-outline-variant/50 hover:bg-primary-fixed hover:border-primary';
+      const labelClass = isSelected ? 'text-white/80' : 'text-on-surface-variant';
+      const valueClass = isSelected ? 'text-white' : 'text-primary';
+
+      const div = document.createElement('div');
+      div.className = `${bgClass} rounded-md p-1 text-center border cursor-pointer transition-colors flex flex-col justify-center items-center h-[46px] select-none`;
+      div.onclick = () => toggleSlot(rate.id);
+
+      div.innerHTML = `
+        <span class="font-label-sm text-[11px] leading-tight ${labelClass} block pointer-events-none">${rate.label}</span>
+        <span class="font-body-md text-[14px] leading-tight ${valueClass} font-semibold block pointer-events-none">${rate.value}U</span>
+      `;
+      container.appendChild(div);
+    });
+  }
+
+  function toggleSlot(id) {
+    if (state.selectedSlots.has(id)) {
+      state.selectedSlots.delete(id);
+    } else {
+      state.selectedSlots.add(id);
+    }
+    renderGrid();
+  }
+
+  function selectAll() {
+    state.basalRates.forEach(r => state.selectedSlots.add(r.id));
+    renderGrid();
+  }
+
+  function deselectAll() {
+    state.selectedSlots.clear();
+    renderGrid();
+  }
+
+  function setValues() {
+    const intVal = document.getElementById('integer-select').value;
+    const decVal = document.getElementById('decimal-select').value;
+    const combined = `${intVal}.${decVal}`;
+
+    if (state.selectedSlots.size > 0) {
+      state.basalRates.forEach(r => {
+        if (state.selectedSlots.has(r.id)) {
+          r.value = combined;
+        }
+      });
+
+      saveBasalValues(state.basalRates.map(rate => rate.value));
+      saveLastInput(combined);
+      state.selectedSlots.clear();
+      renderGrid();
+    }
+  }
+
+  function sendSettingsToBle(payload) {
+    console.log('BLE 전송:', payload);
+    window.dispatchEvent(new CustomEvent('basal-settings-saved', { detail: payload }));
+  }
+
+  function save() {
+    const payload = state.basalRates.map(rate => rate.value);
+    saveBasalValues(payload);
+    sendSettingsToBle(payload);
+    window.location.href = '../main_setting/code.html?saved=1';
+  }
+
+  window.receiveBleBasalData = applyBleBasalData;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    initializeBasalRates();
+    restoreLastInputValue();
+    renderGrid();
+    document.getElementById('select-all-btn').onclick = selectAll;
+    document.getElementById('deselect-all-btn').onclick = deselectAll;
+    document.getElementById('set-btn').onclick = setValues;
+    document.getElementById('save-btn').onclick = save;
+  });
+</script>
+</body></html>

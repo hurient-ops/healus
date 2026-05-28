@@ -1,0 +1,352 @@
+<!DOCTYPE html><html lang="ko"><head>
+<script>
+  (function() {
+    const CONFIG_USE_TIMER = true; 
+    const isInjecting = localStorage.getItem('isInjecting') === 'true';
+    const currentPath = window.location.pathname;
+    const preventPaths = ['meal_injection', 'add_injection', 'dining', 'exercise'];
+    const isPreventPath = preventPaths.some(path => currentPath.includes(path));
+    
+    function showToast(message) {
+      const toast = document.createElement('div');
+      toast.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 bg-slate-800/90 text-white text-[13px] px-5 py-3 rounded-full shadow-lg z-[9999] transition-all duration-300 opacity-0 transform translate-y-2 pointer-events-none whitespace-nowrap font-medium';
+      toast.innerText = message;
+      document.body.appendChild(toast);
+      
+      toast.offsetHeight;
+      toast.classList.remove('opacity-0', 'translate-y-2');
+      toast.classList.add('opacity-100', 'translate-y-0');
+      
+      setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 2000);
+    }
+    
+    if (isInjecting && isPreventPath) {
+      localStorage.setItem('showToastMsg', '주입 중에서 수행할 수 없습니다');
+      window.location.href = '../dashboard/code.html';
+      return;
+    }
+    
+    let activeTimer = null;
+    
+    function checkInjectingStatus() {
+      const activeInjecting = localStorage.getItem('isInjecting') === 'true';
+      if (!activeInjecting) {
+        if (activeTimer) {
+          clearTimeout(activeTimer);
+          activeTimer = null;
+        }
+        return;
+      }
+      
+      const endTime = parseInt(localStorage.getItem('injectingEndTime') || '0', 10);
+      const now = Date.now();
+      const useTimer = CONFIG_USE_TIMER && (localStorage.getItem('CONFIG_USE_TIMER') !== 'false');
+      
+      if (useTimer && endTime > 0) {
+        if (now >= endTime) {
+          triggerComplete();
+        } else {
+          const delay = endTime - now;
+          if (activeTimer) clearTimeout(activeTimer);
+          activeTimer = setTimeout(triggerComplete, delay);
+        }
+      }
+    }
+    
+    function triggerComplete() {
+      console.log('BLE 수신 시뮬레이션: BT_INJ_STOP_IND (0x3B) 주입 완료 수신');
+      localStorage.setItem('isInjecting', 'false');
+      localStorage.removeItem('injectingEndTime');
+      localStorage.setItem('showCompleteModal', 'true');
+      window.location.href = '../dashboard/code.html';
+    }
+    
+    function init() {
+      const pendingToast = localStorage.getItem('showToastMsg');
+      if (pendingToast) {
+        localStorage.removeItem('showToastMsg');
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', () => showToast(pendingToast));
+        } else {
+          showToast(pendingToast);
+        }
+      }
+      checkInjectingStatus();
+    }
+    
+    init();
+    
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'isInjecting') {
+        const updatedInjecting = localStorage.getItem('isInjecting') === 'true';
+        if (updatedInjecting && isPreventPath) {
+          localStorage.setItem('showToastMsg', '주입 중에서 수행할 수 없습니다');
+          window.location.href = '../dashboard/code.html';
+        } else if (!updatedInjecting && isInjecting && !isPreventPath) {
+          localStorage.setItem('showCompleteModal', 'true');
+          window.location.href = '../dashboard/code.html';
+        }
+      }
+      if (e.key === 'isInjecting' || e.key === 'injectingEndTime' || e.key === 'CONFIG_USE_TIMER') {
+        checkInjectingStatus();
+      }
+    });
+  })();
+</script>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>식사 설정 - Heal Us</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&amp;family=Manrope:wght@600;700;800&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">tailwind.config = {darkMode: "class", theme: {extend: {colors: {background: "#f8fafa", "error-container": "#ffdad6", "secondary-fixed-dim": "#ffb1c5", "secondary-container": "#fd6c9c", "tertiary-fixed": "#d4e6e5", "primary-fixed-dim": "#90d2d5", "on-secondary-container": "#6e0034", "on-primary-container": "#f3ffff", "on-primary-fixed-variant": "#004f52", "on-background": "#191c1d", "surface-container-high": "#e6e8e9", "on-error-container": "#93000a", "surface-container": "#eceeee", "on-primary": "#ffffff", "surface-container-low": "#f2f4f4", "inverse-surface": "#2e3131", "inverse-primary": "#90d2d5", surface: "#f8fafa", "primary-fixed": "#aceef1", "on-tertiary-fixed-variant": "#3a4a49", error: "#ba1a1a", "outline-variant": "#bfc8c8", "tertiary-fixed-dim": "#b8cac9", "surface-dim": "#d8dada", "surface-container-lowest": "#ffffff", "on-tertiary-container": "#f3fffe", "on-secondary": "#ffffff", "secondary-fixed": "#ffd9e1", secondary: "#ab2c5d", "surface-variant": "#e1e3e3", "on-surface": "#191c1d", "surface-tint": "#22686b", "inverse-on-surface": "#eff1f1", tertiary: "#4f5f5f", "surface-container-highest": "#e1e3e3", primary: "#1f6568", "on-surface-variant": "#3f4849", "on-secondary-fixed": "#3f001b", "on-primary-fixed": "#002021", "on-tertiary": "#ffffff", "on-tertiary-fixed": "#0e1e1e", outline: "#6f7979", "on-error": "#ffffff", "tertiary-container": "#677877", "surface-bright": "#f8fafa", "primary-container": "#3c7e81", "on-secondary-fixed-variant": "#8b0e45"}, borderRadius: {DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px"}, spacing: {md: "24px", sm: "12px", lg: "40px", gutter: "16px", base: "8px", xs: "4px", "margin-mobile": "16px", xl: "32px", xxl: "48px", xxs: "4px"}, fontFamily: {"data-lg": ["Nunito Sans"], "body-lg": ["Noto Sans"], "label-sm": ["Noto Sans"], "body-md": ["Noto Sans"], "headline-md": ["Nunito Sans"], "display-lg": ["Nunito Sans"], "headline-lg": ["Nunito Sans"], "label-md": ["Inter"], "label-lg": ["Inter"], "title-lg": ["Nunito Sans"], headline: ["Noto Sans"], display: ["Noto Sans"], body: ["Noto Sans"], label: ["Noto Sans"]}, fontSize: {"data-lg": ["48px", {lineHeight: "48px", fontWeight: "800"}], "body-lg": ["18px", {lineHeight: "28px", fontWeight: "400"}], "label-sm": ["13px", {lineHeight: "16px", letterSpacing: "0.03em", fontWeight: "600"}], "body-md": ["16px", {lineHeight: "24px", fontWeight: "400"}], "headline-md": ["24px", {lineHeight: "32px", fontWeight: "600"}], "display-lg": ["32px", {lineHeight: "40px", letterSpacing: "-0.02em", fontWeight: "700"}], "headline-lg": ["32px", {lineHeight: "40px", fontWeight: "400"}], "label-md": ["12px", {lineHeight: "16px", fontWeight: "500"}], "label-lg": ["14px", {lineHeight: "20px", fontWeight: "500"}], "title-lg": ["22px", {lineHeight: "28px", fontWeight: "500"}]}}}};</script>
+<style>
+  body {
+    margin: 0;
+    width: 100%;
+    min-height: 100dvh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 24px 0;
+    background-color: #f8fafa;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"></head>
+<body class="text-on-background font-body-md bg-[#f8fafa]">
+<div class="mx-auto flex min-h-screen items-center justify-center bg-[#f8fafa] py-6">
+  <div class="w-[390px] h-[884px] bg-background relative overflow-hidden rounded-[32px] shadow-2xl flex flex-col">
+    <header class="shrink-0 bg-white text-teal-600 font-['Manrope'] antialiased tracking-tight border-b border-teal-50/50 shadow-[0_2px_15px_-3px_rgba(80,145,148,0.08)] grid grid-cols-[1fr_auto_1fr] items-center w-full px-4 z-50 pt-[48px] h-[104px]">
+      <button type="button" onclick="window.location.href='../main_setting/code.html'" class="p-2 hover:bg-teal-50 rounded-full transition-colors active:scale-95 text-primary justify-self-start">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </button>
+      <h1 class="text-xl font-bold tracking-tight text-teal-700 whitespace-nowrap">식사 설정</h1>
+      <div class="flex gap-1 justify-self-end">
+        <button type="button" onclick="window.location.reload()" class="p-2 hover:bg-teal-50 rounded-full transition-colors active:scale-95 text-primary">
+          <span class="material-symbols-outlined">sync</span>
+        </button>
+        <button type="button" class="p-2 hover:bg-teal-50 rounded-full transition-colors active:scale-95 text-primary">
+          <span class="material-symbols-outlined">bluetooth</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto px-4 pt-4 pb-24">
+      <section class="bg-primary-fixed rounded-xl p-4 shadow-sm border border-outline-variant/30 flex items-start gap-3">
+        <span class="material-symbols-outlined text-primary mt-1" style="font-variation-settings: &quot;FILL&quot; 1;">info</span>
+        <div class="flex flex-col gap-1">
+          <p class="font-body-md text-on-primary-fixed leading-tight">식사설정은 식사주입에 필요한 인슐린 단위수(unit)를 미리 설정합니다.</p>
+        </div>
+      </section>
+
+      <div class="mt-4 bg-surface-container-lowest rounded-xl shadow-[0_2px_15px_-3px_rgba(80,145,148,0.05)] border border-surface-variant overflow-hidden">
+        <div class="p-4 flex flex-col gap-4">
+          <div class="flex flex-col gap-2">
+            <label class="font-label-sm text-on-surface flex items-center gap-2">
+              <span class="material-symbols-outlined text-primary text-[18px]">wb_twilight</span>
+              아침설정 값
+            </label>
+            <div class="flex items-center gap-2">
+              <div class="flex-1">
+                <select id="breakfast-int" class="w-full bg-surface rounded-lg border border-outline-variant text-on-surface focus:border-primary focus:ring-1 focus:ring-primary px-3 py-2.5 font-body-lg text-center transition-all">
+                  <option value="0">0</option><option value="1" selected>1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option>
+                </select>
+              </div>
+              <span class="font-bold text-on-surface">.</span>
+              <div class="flex-1">
+                <select id="breakfast-dec" class="w-full bg-surface rounded-lg border border-outline-variant text-on-surface focus:border-primary focus:ring-1 focus:ring-primary px-3 py-2.5 font-body-lg text-center transition-all">
+                  <option value="00" selected>00</option><option value="05">05</option><option value="10">10</option><option value="15">15</option><option value="20">20</option><option value="25">25</option><option value="30">30</option><option value="35">35</option><option value="40">40</option><option value="45">45</option><option value="50">50</option><option value="55">55</option><option value="60">60</option><option value="65">65</option><option value="70">70</option><option value="75">75</option><option value="80">80</option><option value="85">85</option><option value="90">90</option><option value="95">95</option>
+                </select>
+              </div>
+              <span class="ml-1 text-outline font-label-sm">U</span>
+            </div>
+          </div>
+
+          <hr class="border-surface-variant">
+
+          <div class="flex flex-col gap-2">
+            <label class="font-label-sm text-on-surface flex items-center gap-2">
+              <span class="material-symbols-outlined text-secondary text-[18px]">wb_sunny</span>
+              점심설정 값
+            </label>
+            <div class="flex items-center gap-2">
+              <div class="flex-1">
+                <select id="lunch-int" class="w-full bg-surface rounded-lg border border-outline-variant text-on-surface focus:border-primary focus:ring-1 focus:ring-primary px-3 py-2.5 font-body-lg text-center transition-all">
+                  <option value="0">0</option><option value="1" selected>1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option>
+                </select>
+              </div>
+              <span class="font-bold text-on-surface">.</span>
+              <div class="flex-1">
+                <select id="lunch-dec" class="w-full bg-surface rounded-lg border border-outline-variant text-on-surface focus:border-primary focus:ring-1 focus:ring-primary px-3 py-2.5 font-body-lg text-center transition-all">
+                  <option value="00" selected>00</option><option value="05">05</option><option value="10">10</option><option value="15">15</option><option value="20">20</option><option value="25">25</option><option value="30">30</option><option value="35">35</option><option value="40">40</option><option value="45">45</option><option value="50">50</option><option value="55">55</option><option value="60">60</option><option value="65">65</option><option value="70">70</option><option value="75">75</option><option value="80">80</option><option value="85">85</option><option value="90">90</option><option value="95">95</option>
+                </select>
+              </div>
+              <span class="ml-1 text-outline font-label-sm">U</span>
+            </div>
+          </div>
+
+          <hr class="border-surface-variant">
+
+          <div class="flex flex-col gap-2">
+            <label class="font-label-sm text-on-surface flex items-center gap-2">
+              <span class="material-symbols-outlined text-tertiary text-[18px]">nights_stay</span>
+              저녁설정 값
+            </label>
+            <div class="flex items-center gap-2">
+              <div class="flex-1">
+                <select id="dinner-int" class="w-full bg-surface rounded-lg border border-outline-variant text-on-surface focus:border-primary focus:ring-1 focus:ring-primary px-3 py-2.5 font-body-lg text-center transition-all">
+                  <option value="0">0</option><option value="1" selected>1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option>
+                </select>
+              </div>
+              <span class="font-bold text-on-surface">.</span>
+              <div class="flex-1">
+                <select id="dinner-dec" class="w-full bg-surface rounded-lg border border-outline-variant text-on-surface focus:border-primary focus:ring-1 focus:ring-primary px-3 py-2.5 font-body-lg text-center transition-all">
+                  <option value="00" selected>00</option><option value="05">05</option><option value="10">10</option><option value="15">15</option><option value="20">20</option><option value="25">25</option><option value="30">30</option><option value="35">35</option><option value="40">40</option><option value="45">45</option><option value="50">50</option><option value="55">55</option><option value="60">60</option><option value="65">65</option><option value="70">70</option><option value="75">75</option><option value="80">80</option><option value="85">85</option><option value="90">90</option><option value="95">95</option>
+                </select>
+              </div>
+              <span class="ml-1 text-outline font-label-sm">U</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4 flex gap-3">
+        <button id="save-btn" type="button" class="flex-1 bg-primary text-on-primary rounded-full hover:bg-primary-container transition-colors shadow-[0_4px_12px_rgba(31,101,104,0.2)] active:scale-95 text-[16px] font-bold py-4">저장</button>
+        <button id="close-btn" type="button" onclick="window.location.href='../main_setting/code.html'" class="flex-1 bg-surface-container-high text-on-surface rounded-full border border-outline-variant hover:bg-surface-variant transition-colors shadow-sm active:scale-95 text-[16px] font-bold py-4">닫기</button>
+      </div>
+
+      <section class="mt-4 rounded-2xl overflow-hidden h-24 relative">
+        <img alt="Healthy fresh meal" class="w-full h-full object-cover" src="./images/meal_setting.png">
+        <div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
+      </section>
+    </main>
+
+    <nav class="w-full border-t border-outline-variant/30 flex items-center justify-around px-4 z-50 absolute bottom-0 bg-white h-[64px] pt-1 pb-2">
+      <a class="flex flex-col items-center gap-1 text-on-surface-variant hover:text-primary transition-colors cursor-pointer text-decoration-none" href="../dashboard/code.html">
+        <span class="material-symbols-outlined">home</span>
+        <span class="text-[11px] font-medium font-['Noto_Sans']">홈</span>
+      </a>
+      <a class="flex flex-col items-center gap-1 text-primary cursor-pointer text-decoration-none" href="../main_setting/code.html">
+        <span class="material-symbols-outlined" style="font-variation-settings: &quot;FILL&quot; 1;">settings</span>
+        <span class="text-[11px] font-medium font-['Noto_Sans']">설정</span>
+      </a>
+      <a class="flex flex-col items-center gap-1 text-on-surface-variant hover:text-primary transition-colors cursor-pointer text-decoration-none" href="../history/code.html">
+        <span class="material-symbols-outlined">history</span>
+        <span class="text-[11px] font-medium font-['Noto_Sans']">기록</span>
+      </a>
+      <a class="flex flex-col items-center gap-1 text-on-surface-variant hover:text-primary transition-colors cursor-pointer text-decoration-none" href="../infomation/code.html">
+        <span class="material-symbols-outlined">info</span>
+        <span class="text-[11px] font-medium font-['Noto_Sans']">정보</span>
+      </a>
+    </nav>
+  </div>
+</div>
+
+<script>
+  const STORAGE_KEY = 'meal_settings';
+  const DEFAULT_MEAL_VALUES = {
+    breakfast: '1.00',
+    lunch: '1.00',
+    dinner: '1.00'
+  };
+
+  const targets = {
+    breakfast: ['breakfast-int', 'breakfast-dec'],
+    lunch: ['lunch-int', 'lunch-dec'],
+    dinner: ['dinner-int', 'dinner-dec']
+  };
+
+  function normalizeMealValue(value) {
+    const parsed = String(value || '1.00');
+    const [intPart = '1', decPart = '00'] = parsed.split('.');
+    return `${intPart}.${decPart.padEnd(2, '0')}`;
+  }
+
+  function loadSavedMealSettings() {
+    try {
+      const saved = window.localStorage.getItem(STORAGE_KEY);
+      if (!saved) {
+        return DEFAULT_MEAL_VALUES;
+      }
+
+      const parsed = JSON.parse(saved);
+      if (!parsed || typeof parsed !== 'object') {
+        return DEFAULT_MEAL_VALUES;
+      }
+
+      return {
+        breakfast: normalizeMealValue(parsed.breakfast),
+        lunch: normalizeMealValue(parsed.lunch),
+        dinner: normalizeMealValue(parsed.dinner)
+      };
+    } catch (error) {
+      return DEFAULT_MEAL_VALUES;
+    }
+  }
+
+  function applyMealValues(values) {
+    Object.entries(values).forEach(([key, value]) => {
+      const [intId, decId] = targets[key];
+      const intEl = document.getElementById(intId);
+      const decEl = document.getElementById(decId);
+      const [intValue = '1', decValue = '00'] = String(value).split('.');
+
+      if (intEl) {
+        intEl.value = String(intValue);
+      }
+
+      if (decEl) {
+        decEl.value = decValue.padEnd(2, '0');
+      }
+    });
+  }
+
+  function getCurrentMealValues() {
+    return {
+      breakfast: `${document.getElementById('breakfast-int').value}.${document.getElementById('breakfast-dec').value}`,
+      lunch: `${document.getElementById('lunch-int').value}.${document.getElementById('lunch-dec').value}`,
+      dinner: `${document.getElementById('dinner-int').value}.${document.getElementById('dinner-dec').value}`
+    };
+  }
+
+  function saveMealValues(values) {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(values));
+  }
+
+  function applyBleMealData(values) {
+    if (!values || typeof values !== 'object') {
+      return;
+    }
+
+    const normalized = {
+      breakfast: normalizeMealValue(values.breakfast),
+      lunch: normalizeMealValue(values.lunch),
+      dinner: normalizeMealValue(values.dinner)
+    };
+
+    saveMealValues(normalized);
+    applyMealValues(normalized);
+  }
+
+  window.receiveBleMealData = applyBleMealData;
+
+  document.getElementById('save-btn').addEventListener('click', function () {
+    const values = getCurrentMealValues();
+    saveMealValues(values);
+    
+    // BLE 패킷 송출 시뮬레이션 로그 출력
+    console.log(`BLE 명령 전송: BT_MEAL_SET_REQ (0x10) - 아침: ${values.breakfast} U, 점심: ${values.lunch} U, 저녁: ${values.dinner} U 설정 전송`);
+    
+    window.location.href = '../main_setting/code.html?saved=1&type=meal';
+  });
+
+  const savedValues = loadSavedMealSettings();
+  applyMealValues(savedValues);
+</script>
+</body></html>

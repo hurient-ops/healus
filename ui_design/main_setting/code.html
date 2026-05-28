@@ -1,0 +1,470 @@
+<!DOCTYPE html><html lang="ko" style=""><head>
+<script>
+  (function() {
+    const CONFIG_USE_TIMER = true; 
+    const isInjecting = localStorage.getItem('isInjecting') === 'true';
+    const currentPath = window.location.pathname;
+    const preventPaths = ['meal_injection', 'add_injection', 'dining', 'exercise'];
+    const isPreventPath = preventPaths.some(path => currentPath.includes(path));
+    
+    function showToast(message) {
+      const toast = document.createElement('div');
+      toast.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 bg-slate-800/90 text-white text-[13px] px-5 py-3 rounded-full shadow-lg z-[9999] transition-all duration-300 opacity-0 transform translate-y-2 pointer-events-none whitespace-nowrap font-medium';
+      toast.innerText = message;
+      document.body.appendChild(toast);
+      
+      toast.offsetHeight;
+      toast.classList.remove('opacity-0', 'translate-y-2');
+      toast.classList.add('opacity-100', 'translate-y-0');
+      
+      setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 2000);
+    }
+    
+    if (isInjecting && isPreventPath) {
+      localStorage.setItem('showToastMsg', '주입 중에서 수행할 수 없습니다');
+      window.location.href = '../dashboard/code.html';
+      return;
+    }
+    
+    let activeTimer = null;
+    
+    function checkInjectingStatus() {
+      const activeInjecting = localStorage.getItem('isInjecting') === 'true';
+      if (!activeInjecting) {
+        if (activeTimer) {
+          clearTimeout(activeTimer);
+          activeTimer = null;
+        }
+        return;
+      }
+      
+      const endTime = parseInt(localStorage.getItem('injectingEndTime') || '0', 10);
+      const now = Date.now();
+      const useTimer = CONFIG_USE_TIMER && (localStorage.getItem('CONFIG_USE_TIMER') !== 'false');
+      
+      if (useTimer && endTime > 0) {
+        if (now >= endTime) {
+          triggerComplete();
+        } else {
+          const delay = endTime - now;
+          if (activeTimer) clearTimeout(activeTimer);
+          activeTimer = setTimeout(triggerComplete, delay);
+        }
+      }
+    }
+    
+    function triggerComplete() {
+      console.log('BLE 수신 시뮬레이션: BT_INJ_STOP_IND (0x3B) 주입 완료 수신');
+      localStorage.setItem('isInjecting', 'false');
+      localStorage.removeItem('injectingEndTime');
+      localStorage.setItem('showCompleteModal', 'true');
+      window.location.href = '../dashboard/code.html';
+    }
+    
+    function init() {
+      const pendingToast = localStorage.getItem('showToastMsg');
+      if (pendingToast) {
+        localStorage.removeItem('showToastMsg');
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', () => showToast(pendingToast));
+        } else {
+          showToast(pendingToast);
+        }
+      }
+      checkInjectingStatus();
+    }
+    
+    init();
+    
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'isInjecting') {
+        const updatedInjecting = localStorage.getItem('isInjecting') === 'true';
+        if (updatedInjecting && isPreventPath) {
+          localStorage.setItem('showToastMsg', '주입 중에서 수행할 수 없습니다');
+          window.location.href = '../dashboard/code.html';
+        } else if (!updatedInjecting && isInjecting && !isPreventPath) {
+          localStorage.setItem('showCompleteModal', 'true');
+          window.location.href = '../dashboard/code.html';
+        }
+      }
+      if (e.key === 'isInjecting' || e.key === 'injectingEndTime' || e.key === 'CONFIG_USE_TIMER') {
+        checkInjectingStatus();
+      }
+    });
+  })();
+</script>
+<link class="" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Settings - Heal Us</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script crossorigin="" src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script crossorigin="" src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "secondary-fixed": "#ffd9e1",
+            "on-error-container": "#93000a",
+            "on-tertiary-fixed-variant": "#3a4a49",
+            "inverse-on-surface": "#eff1f1",
+            "on-surface": "#191c1d",
+            "surface-variant": "#e1e3e3",
+            "secondary": "#ab2c5d",
+            "on-secondary-container": "#6e0034",
+            "surface-container-low": "#f2f4f4",
+            "on-tertiary-fixed": "#0e1e1e",
+            "surface-container": "#eceeee",
+            "primary-container": "#3c7e81",
+            "on-primary": "#ffffff",
+            "on-primary-fixed-variant": "#004f52",
+            "on-secondary-fixed-variant": "#8b0e45",
+            "inverse-primary": "#90d2d5",
+            "surface-container-lowest": "#ffffff",
+            "secondary-container": "#fd6c9c",
+            "error": "#ba1a1a",
+            "on-background": "#191c1d",
+            "secondary-fixed-dim": "#ffb1c5",
+            "outline": "#6f7979",
+            "surface-bright": "#f8fafa",
+            "on-surface-variant": "#3f4849",
+            "primary": "#1f6568",
+            "on-primary-fixed": "#002021",
+            "tertiary-fixed": "#d4e6e5",
+            "on-secondary": "#ffffff",
+            "on-error": "#ffffff",
+            "surface-tint": "#22686b",
+            "on-tertiary-container": "#f3fffe",
+            "tertiary-fixed-dim": "#b8cac9",
+            "primary-fixed": "#aceef1",
+            "surface-dim": "#d8dada",
+            "inverse-surface": "#2e3131",
+            "tertiary": "#4f5f5f",
+            "on-primary-container": "#f3ffff",
+            "primary-fixed-dim": "#90d2d5",
+            "outline-variant": "#bfc8c8",
+            "tertiary-container": "#677877",
+            "background": "#f8fafa",
+            "surface": "#f8fafa",
+            "surface-container-high": "#e6e8e9",
+            "surface-container-highest": "#e1e3e3",
+            "error-container": "#ffdad6",
+            "on-tertiary": "#ffffff",
+            "on-secondary-fixed": "#3f001b"
+          },
+          "fontFamily": {
+            "sans": ["Noto Sans", "sans-serif"],
+            "headline": ["Noto Sans", "sans-serif"],
+            "display": ["Noto Sans", "sans-serif"],
+            "body": ["Noto Sans", "sans-serif"],
+            "label": ["Noto Sans", "sans-serif"]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    body {
+      font-family: 'Noto Sans', sans-serif;
+    }
+    
+    /* Utility for hidden scrollbar */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+<body class="bg-surface flex justify-center items-center min-h-screen">
+<div id="root"></div>
+<script type="text/babel">
+  const { useState } = React;
+
+  function SettingsScreen() {
+    const [isPaused, setIsPaused] = useState(false);
+    const [activeModal, setActiveModal] = useState(null);
+
+    const sendBLECommand = (command) => {
+      console.log(`BLE Command Sent: [${command}]`);
+    };
+
+    const handleConfirmPause = () => {
+      setIsPaused(true);
+      sendBLECommand('PAUSE');
+      setActiveModal(null);
+    };
+
+    const handleConfirmResume = () => {
+      setIsPaused(false);
+      sendBLECommand('RESUME');
+      setActiveModal(null);
+    };
+
+    const handleConfirmDisconnect = () => {
+      sendBLECommand('DISCONNECT');
+      setActiveModal(null);
+    };
+
+    const handleConfirmReset = () => {
+      sendBLECommand('RESET');
+      setActiveModal('reset_success');
+    };
+
+    return (
+      <div className="w-[390px] h-[884px] max-w-[390px] max-h-[884px] bg-surface-container-lowest relative overflow-hidden shadow-2xl flex flex-col">
+        <div className="h-12 bg-surface-container-lowest w-full shrink-0 z-10"></div>
+
+        <header className="h-14 bg-surface-container-lowest flex items-center justify-between px-4 border-b border-outline-variant shrink-0">
+          <div className="w-8"></div>
+          <h1 className="font-bold tracking-tight leading-none text-xl text-teal-700">설정</h1>
+          <div className="flex items-center gap-3 w-16 justify-end text-primary self-center flex-row">
+            <div
+              className="flex items-center hover:bg-teal-50 dark:hover:bg-teal-900/30 transition-colors active:scale-95 transition-transform duration-150 p-2 rounded-full cursor-pointer"
+              onClick={() => window.location.reload()}
+            >
+              <span className="material-symbols-outlined text-[#509194]">sync</span>
+            </div>
+            <div className="flex items-center hover:bg-teal-50 dark:hover:bg-teal-900/30 transition-colors active:scale-95 transition-transform duration-150 p-2 rounded-full cursor-pointer">
+              <span className="material-symbols-outlined text-[#509194]">bluetooth</span>
+            </div>
+          </div>
+        </header>
+
+        <main className="flex-1 overflow-y-auto no-scrollbar bg-surface-container-lowest pb-20">
+          <section>
+            <div className="bg-surface-container-low px-4 py-2 border-b border-outline-variant">
+              <h2 className="text-sm font-semibold text-on-surface-variant">기초</h2>
+            </div>
+            <ul className="flex flex-col">
+              <li className="border-b border-outline-variant">
+                <a href="../basal_setting/code.html" className="block w-full text-left px-4 py-4 text-base font-medium text-on-surface hover:bg-surface-container active:bg-surface-container-high transition-colors cursor-pointer">
+                  기초 설정
+                </a>
+              </li>
+              <li className="border-b border-outline-variant">
+                <button
+                  className="w-full text-left px-4 py-4 text-base font-medium text-on-surface hover:bg-surface-container active:bg-surface-container-high transition-colors"
+                  onClick={() => setActiveModal(isPaused ? 'resume' : 'pause')}
+                >
+                  {isPaused ? '장치 재개' : '일시 정지'}
+                </button>
+              </li>
+            </ul>
+          </section>
+
+          <section>
+            <div className="bg-surface-container-low px-4 py-2 border-b border-outline-variant mt-2">
+              <h2 className="text-sm font-semibold text-on-surface-variant">식사</h2>
+            </div>
+            <ul className="flex flex-col">
+              <li className="border-b border-outline-variant">
+                <a href="../meal_setting/code.html" className="block w-full text-left px-4 py-4 text-base font-medium text-on-surface hover:bg-surface-container active:bg-surface-container-high transition-colors cursor-pointer">
+                  식사 설정
+                </a>
+              </li>
+            </ul>
+          </section>
+
+          <section>
+            <div className="bg-surface-container-low px-4 py-2 border-b border-outline-variant mt-2 flex justify-between items-center">
+              <h2 className="text-sm font-semibold text-on-surface-variant">장치</h2>
+              <span className="text-xs text-on-surface-variant">연결 상태 : HealUs</span>
+            </div>
+            <ul className="flex flex-col">
+              <li className="border-b border-outline-variant">
+                <button
+                  className="w-full text-left px-4 py-4 text-base font-medium text-on-surface hover:bg-surface-container active:bg-surface-container-high transition-colors"
+                  onClick={() => setActiveModal('disconnect')}
+                >
+                  장치 연결 해제
+                </button>
+              </li>
+              <li className="border-b border-outline-variant">
+                <button
+                  className="w-full text-left px-4 py-4 text-base font-medium text-on-surface hover:bg-surface-container active:bg-surface-container-high transition-colors"
+                  onClick={() => setActiveModal('reset')}
+                >
+                  장치 초기화
+                </button>
+              </li>
+            </ul>
+          </section>
+
+          <section>
+            <div className="bg-surface-container-low px-4 py-2 border-b border-outline-variant mt-2">
+              <h2 className="text-sm font-semibold text-on-surface-variant">앱</h2>
+            </div>
+            <ul className="flex flex-col">
+              <li className="border-b border-outline-variant">
+                <a href="../language_setting/code.html" className="block w-full text-left px-4 py-4 text-base font-medium text-on-surface hover:bg-surface-container active:bg-surface-container-high transition-colors cursor-pointer">
+                  언어
+                </a>
+              </li>
+            </ul>
+          </section>
+
+          <div className="px-4 py-4">
+            <div className="w-full overflow-hidden rounded-lg aspect-[1376/580]">
+              <img
+                alt="Device Image"
+                className="w-full h-full object-cover"
+                src="./images/main_setting.png"
+                style={{ imageRendering: '-webkit-optimize-contrast', objectFit: 'cover' }}
+              />
+            </div>
+          </div>
+        </main>
+
+        <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-[390px] bg-surface-container-lowest border-t border-outline-variant h-16 flex items-center justify-around px-4 z-50">
+          <a
+            className="flex flex-col items-center gap-1 text-on-surface-variant hover:text-primary transition-colors cursor-pointer decoration-none"
+            onClick={() => {
+              window.location.href = '../dashboard/code.html';
+            }}
+          >
+            <span className="material-symbols-outlined text-[24px]">home</span>
+            <span className="text-[10px] font-medium font-label">홈</span>
+          </a>
+          <button className="flex flex-col items-center gap-1 text-primary">
+            <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: '"FILL" 1' }}>settings</span>
+            <span className="text-[10px] font-medium font-label">설정</span>
+          </button>
+          <a
+            className="flex flex-col items-center gap-1 text-on-surface-variant hover:text-primary transition-colors cursor-pointer decoration-none"
+            onClick={() => {
+              window.location.href = '../history/code.html';
+            }}
+          >
+            <span className="material-symbols-outlined text-[24px]">history</span>
+            <span className="text-[10px] font-medium font-label">기록</span>
+          </a>
+          <a
+            className="flex flex-col items-center gap-1 text-on-surface-variant hover:text-primary transition-colors cursor-pointer decoration-none"
+            onClick={() => {
+              window.location.href = '../infomation/code.html';
+            }}
+          >
+            <span className="material-symbols-outlined text-[24px]">info</span>
+            <span className="text-[10px] font-medium font-label">정보</span>
+          </a>
+        </nav>
+
+        {activeModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setActiveModal(null)}>
+            <div className="bg-surface-container-lowest w-[320px] rounded-xl shadow-xl p-6 flex flex-col gap-6" onClick={(e) => e.stopPropagation()}>
+              {activeModal === 'pause' && (
+                <>
+                  <h2 className="text-[24px] font-bold text-on-surface text-center">일시 정지</h2>
+                  <div className="flex gap-3 mt-4 justify-center">
+                    <button className="flex-1 bg-[#2A6062] text-white py-3 rounded-full font-semibold hover:opacity-90 transition-opacity active:scale-95" onClick={handleConfirmPause}>예</button>
+                    <button className="flex-1 bg-[#2A6062] text-white py-3 rounded-full font-semibold hover:opacity-90 transition-opacity active:scale-95" onClick={() => setActiveModal(null)}>아니요</button>
+                  </div>
+                </>
+              )}
+
+              {activeModal === 'resume' && (
+                <>
+                  <h2 className="text-[24px] font-bold text-on-surface text-center">장치 재개?</h2>
+                  <div className="flex gap-3 mt-4 justify-center">
+                    <button className="flex-1 bg-[#2A6062] text-white py-3 rounded-full font-semibold hover:opacity-90 transition-opacity active:scale-95" onClick={handleConfirmResume}>예</button>
+                    <button className="flex-1 bg-[#2A6062] text-white py-3 rounded-full font-semibold hover:opacity-90 transition-opacity active:scale-95" onClick={() => setActiveModal(null)}>아니요</button>
+                  </div>
+                </>
+              )}
+
+              {activeModal === 'disconnect' && (
+                <>
+                  <h2 className="text-[24px] font-bold text-on-surface text-center">장치 연결 해제</h2>
+                  <p className="text-center text-on-surface-variant">장치 연결을 해제하시겠습니까?</p>
+                  <div className="flex gap-3 mt-4 justify-center">
+                    <button className="flex-1 bg-[#2A6062] text-white py-3 rounded-full font-semibold hover:opacity-90 transition-opacity active:scale-95" onClick={handleConfirmDisconnect}>예</button>
+                    <button className="flex-1 bg-[#2A6062] text-white py-3 rounded-full font-semibold hover:opacity-90 transition-opacity active:scale-95" onClick={() => setActiveModal(null)}>아니요</button>
+                  </div>
+                </>
+              )}
+
+              {activeModal === 'reset' && (
+                <>
+                  <h2 className="text-[24px] font-bold text-on-surface text-center">장치 초기화</h2>
+                  <p className="text-center text-on-surface-variant">장치를 초기화하시겠습니까?</p>
+                  <div className="flex gap-3 mt-4 justify-center">
+                    <button className="flex-1 bg-[#2A6062] text-white py-3 rounded-full font-semibold hover:opacity-90 transition-opacity active:scale-95" onClick={handleConfirmReset}>예</button>
+                    <button className="flex-1 bg-[#2A6062] text-white py-3 rounded-full font-semibold hover:opacity-90 transition-opacity active:scale-95" onClick={() => setActiveModal(null)}>아니요</button>
+                  </div>
+                </>
+              )}
+
+              {activeModal === 'reset_success' && (
+                <>
+                  <h2 className="text-[24px] font-bold text-on-surface text-center">장치 초기화</h2>
+                  <p className="text-center text-on-surface-variant">초기화가 완료되었습니다.</p>
+                  <div className="flex gap-3 mt-4 justify-center">
+                    <button className="w-full bg-[#2A6062] text-white py-3 rounded-full font-semibold hover:opacity-90 transition-opacity active:scale-95" onClick={() => setActiveModal(null)}>OK</button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  function renderSettings() {
+    const container = document.getElementById('root');
+    if (!container) {
+      return;
+    }
+
+    container.innerHTML = '';
+    const root = ReactDOM.createRoot(container);
+    root.render(<SettingsScreen />);
+  }
+
+  renderSettings();
+
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) {
+      renderSettings();
+    }
+  });
+
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('saved') === '1') {
+    const modalType = params.get('type') === 'meal' ? '식사 설정' : '기초 설정';
+    const modal = document.createElement('div');
+    modal.id = 'basal-save-modal';
+    modal.className = 'fixed inset-0 z-[200] flex items-center justify-center bg-black/50 px-4';
+    modal.innerHTML = `
+      <div class="w-full max-w-[320px] rounded-[28px] bg-surface-container-lowest px-6 py-7 shadow-2xl text-center">
+        <p class="text-[26px] font-extrabold text-on-surface tracking-tight">${modalType}</p>
+        <p class="mt-3 text-[15px] text-on-surface-variant leading-6">설정이 저장되었습니다.</p>
+        <button id="basal-save-ok" class="mt-6 w-full rounded-full bg-[#1f6568] px-4 py-3 text-[16px] font-bold text-white shadow-md active:scale-95 transition-all">OK</button>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const okButton = document.getElementById('basal-save-ok');
+    okButton.addEventListener('click', () => {
+      params.delete('saved');
+      params.delete('type');
+      const query = params.toString();
+      const newUrl = query ? `${window.location.pathname}?${query}` : window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+      modal.remove();
+    });
+  }
+</script>
+</body>
+</html>

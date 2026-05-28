@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+
+<html lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>HealUs Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Material Icons for standard icons -->
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            teal: {
+              DEFAULT: '#2A6062',
+              light: '#EAF3F3',
+            },
+            pink: {
+              DEFAULT: '#FF6B9B',
+            },
+            gray: {
+              bg: '#F5F7F8',
+              text: '#666666',
+              light: '#E5E7EB',
+            }
+          },
+          fontFamily: {
+            sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'Roboto', 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+<style data-purpose="custom-utilities">
+    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+    
+    body {
+      font-family: 'Pretendard', sans-serif;
+      background-color: #F5F7F8;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* Hide scrollbar for clean mobile look */
+    ::-webkit-scrollbar {
+      display: none;
+    }
+    
+    .glass-effect {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+    }
+    
+    .progress-bar-bg {
+      background-color: #EAF3F3;
+    }
+    
+    .progress-bar-fill {
+      background-color: #2A6062;
+      transition: width 0.5s ease-in-out;
+    }
+    
+    .icon-box {
+      background-color: #EAF3F3;
+      color: #2A6062;
+    }
+
+    /* Modal Overlays */
+    .modal-overlay {
+      display: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .modal-overlay.active {
+      display: flex;
+      opacity: 1;
+    }
+  </style>
+</head>
+<body class="w-full h-screen flex flex-col justify-between overflow-hidden relative max-w-[390px] mx-auto bg-white shadow-xl pt-[48px]" style="height: 884px; max-height: 884px;">
+<!-- BEGIN: MainContent -->
+<main class="flex-1 pb-[80px] bg-gray-bg overflow-hidden relative">
+<!-- BEGIN: TopBar -->
+<header class="flex justify-between items-center px-5 bg-white sticky top-0 z-10 py-2">
+<div class="flex items-center gap-2 text-teal font-bold text-xl">
+<span class="material-icons">medical_services</span>
+<h1 class="">HealUs</h1>
+</div>
+<div class="flex items-center gap-4 text-teal">
+<button aria-label="새로고침" class="focus:outline-none" id="btn-refresh">
+<span class="material-icons">sync</span>
+</button>
+<button aria-label="블루투스" class="focus:outline-none" id="btn-bluetooth" style="display: block;">
+<span class="material-icons">bluetooth</span>
+</button>
+</div>
+</header>
+<!-- END: TopBar -->
+<div class="px-5 py-2 space-y-2">
+<!-- BEGIN: Dashboard Summary Card -->
+<section class="bg-white rounded-[20px] shadow-sm p-4 relative">
+<div class="flex justify-between items-start mb-3">
+<div>
+<div class="flex items-center gap-2 mb-3">
+<h2 class="text-gray-text text-sm">오늘의 요약</h2>
+<span class="hidden bg-blue-100 text-blue-600 text-[10px] font-bold px-2 py-0.5 rounded-full" id="badge-injecting">주입 중</span>
+</div>
+<div class="flex gap-4">
+<!-- Basal -->
+<div>
+<div class="flex items-end gap-1">
+<span class="text-2xl font-semibold text-gray-800" id="val-basal">0.0</span>
+<span class="text-sm text-gray-500 mb-1">U</span>
+</div>
+<p class="text-xs text-gray-500 mt-1">기초주입</p>
+</div>
+<div class="w-px bg-gray-200"></div>
+<!-- Meal -->
+<div>
+<div class="flex items-end gap-1">
+<span class="text-2xl font-semibold text-gray-800" id="val-meal">0.0</span>
+<span class="text-sm text-gray-500 mb-1">U</span>
+</div>
+<p class="text-xs text-gray-500 mt-1">식사주입</p>
+</div>
+<div class="w-px bg-gray-200"></div>
+<!-- Extra -->
+<div>
+<div class="flex items-end gap-1">
+<span class="text-2xl font-semibold text-gray-800" id="val-add">0.0</span>
+<span class="text-sm text-gray-500 mb-1">U</span>
+</div>
+<p class="text-xs text-gray-500 mt-1">추가주입</p>
+</div>
+</div>
+</div>
+<!-- Syringe Icon -->
+<div class="w-12 h-12 rounded-full icon-box flex items-center justify-center">
+<span class="material-icons text-2xl transform -rotate-45">vaccines</span>
+</div>
+</div>
+<!-- Battery Status -->
+<div class="mb-4">
+<div class="flex justify-between items-center mb-2">
+<div class="flex items-center gap-1 text-sm font-medium text-gray-800">
+<span class="material-icons text-base">battery_std</span>
+              펌프 배터리
+            </div>
+<span class="text-sm font-bold text-teal" id="val-battery-pct">50%</span>
+</div>
+<div class="h-2 w-full progress-bar-bg rounded-full overflow-hidden">
+<div class="h-full progress-bar-fill rounded-full" id="bar-battery" style="width: 50%;"></div>
+</div>
+</div>
+<!-- Insulin Status -->
+<div>
+<div class="flex justify-between items-center mb-2">
+<div class="flex items-center gap-1 text-sm font-medium text-gray-800">
+<span class="material-icons text-base">water_drop</span>
+              인슐린 잔량
+            </div>
+<span class="text-sm font-bold text-teal" id="val-insulin">70 / 300 U</span>
+</div>
+<div class="h-2 w-full progress-bar-bg rounded-full overflow-hidden">
+<div class="h-full progress-bar-fill rounded-full" id="bar-insulin" style="width: 23.3333%;"></div>
+</div>
+</div>
+</section>
+<!-- END: Dashboard Summary Card -->
+<!-- BEGIN: Device Banner Image -->
+<section class="rounded-[20px] overflow-hidden relative shadow-sm h-[100px]">
+<img alt="Pump Device" class="w-full h-full object-cover" src="./images/dashboard.png"/>
+<div class="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent p-5 flex flex-col justify-end">
+<p class="text-white/90 text-sm font-medium">당신을 위한</p>
+<p class="text-white text-lg font-bold">혈당관리 파트너</p>
+</div>
+</section>
+<!-- END: Device Banner Image -->
+<!-- BEGIN: Quick Actions -->
+<section>
+<h3 class="text-sm text-gray-text mb-3 px-1">빠른 실행</h3>
+<div class="grid grid-cols-2 gap-3">
+<button class="bg-white rounded-2xl flex flex-col items-center justify-center gap-3 shadow-sm active:bg-gray-50 transition-colors p-3" onclick="navigateToAction('meal')">
+<div class="w-10 h-10 rounded-xl icon-box flex items-center justify-center">
+<span class="material-icons">restaurant</span>
+</div>
+<span class="text-sm font-medium text-gray-800">식사 주입</span>
+</button>
+<button class="bg-white rounded-2xl flex flex-col items-center justify-center gap-3 shadow-sm active:bg-gray-50 transition-colors p-3" onclick="navigateToAction('extra')">
+<div class="w-10 h-10 rounded-xl icon-box flex items-center justify-center">
+<span class="material-icons">add_circle_outline</span>
+</div>
+<span class="text-sm font-medium text-gray-800">추가 주입</span>
+</button>
+<button class="bg-white rounded-2xl flex flex-col items-center justify-center gap-3 shadow-sm active:bg-gray-50 transition-colors p-3" onclick="navigateToAction('dining')">
+<div class="w-10 h-10 rounded-xl icon-box flex items-center justify-center">
+<span class="material-icons">local_mall</span>
+</div>
+<span class="text-sm font-medium text-gray-800">회식 적용</span>
+</button>
+<button class="bg-white rounded-2xl flex flex-col items-center justify-center gap-3 shadow-sm active:bg-gray-50 transition-colors p-3" onclick="navigateToAction('exercise')">
+<div class="w-10 h-10 rounded-xl icon-box flex items-center justify-center">
+<span class="material-icons">fitness_center</span>
+</div>
+<span class="text-sm font-medium text-gray-800">운동 적용</span>
+</button>
+</div>
+</section>
+<!-- END: Quick Actions -->
+<!-- BEGIN: Emergency Stop Button -->
+<section class="mt-3">
+<button class="w-full bg-pink text-white rounded-[24px] py-4 text-lg font-bold shadow-md active:bg-pink-600 transition-colors flex items-center justify-center gap-2" id="btn-emergency">
+<span class="material-icons text-sm">warning</span>
+          긴급 정지
+        </button>
+<p class="text-center text-[11px] text-gray-400 mt-3">
+          연결된 장치로부터 모든 인슐린 공급을 즉시 중단합니다.
+        </p>
+</section>
+<!-- END: Emergency Stop Button -->
+</div>
+</main>
+<!-- END: MainContent -->
+<!-- BEGIN: Bottom Navigation -->
+<nav class="bg-white border-t border-gray-100 flex justify-around items-center h-[70px] pb-safe sticky bottom-0 z-20 shadow-[0_-5px_15px_-10px_rgba(0,0,0,0.1)]">
+<button class="flex flex-col items-center gap-1 text-teal w-1/4" onclick="window.location.href = '../dashboard/code.html'">
+<span class="material-icons">home</span>
+<span class="text-[10px] font-medium">홈</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-gray-900 w-1/4" onclick="window.location.href = '../main_setting/code.html'">
+<span class="material-symbols-outlined text-[24px] text-gray-900">settings</span>
+<span class="text-[10px] font-medium text-gray-900">설정</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-gray-900 w-1/4" onclick="window.location.href = '../history/code.html'">
+<span class="material-icons text-gray-900">history</span>
+<span class="text-[10px] font-medium text-gray-900">기록</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-gray-900 w-1/4" onclick="window.location.href = '../infomation/code.html'">
+<span class="material-icons text-gray-900">info_outline</span>
+<span class="text-[10px] font-medium text-gray-900">정보</span>
+</button>
+</nav>
+<!-- END: Bottom Navigation -->
+<!-- BEGIN: Modals -->
+<!-- Emergency Modal -->
+<div class="modal-overlay absolute inset-0 bg-black/50 z-50 items-center justify-center px-6 backdrop-blur-sm" id="emergency-modal">
+<div class="bg-white rounded-[20px] w-full max-w-sm overflow-hidden flex flex-col items-center shadow-2xl pb-6">
+<div class="py-10 px-6 text-center w-full">
+<h2 class="text-xl font-bold text-gray-900">긴급 정지되었습니다</h2>
+</div>
+<button class="bg-teal text-white font-medium rounded-full py-2 px-10 min-w-[120px]" id="btn-modal-ok">
+        OK
+      </button>
+</div>
+</div>
+<!-- Request Modal -->
+<div class="modal-overlay absolute inset-0 bg-black/50 z-50 items-center justify-center px-6 backdrop-blur-sm" id="request-modal">
+<div class="bg-white rounded-[20px] w-full max-w-sm overflow-hidden flex flex-col items-center shadow-2xl pb-6">
+<div class="py-10 px-6 text-center w-full">
+<h2 class="text-xl font-bold text-gray-900">주입 요청을 하였습니다</h2>
+</div>
+<div class="flex gap-3 px-6 w-full">
+<button class="flex-1 border border-gray-200 text-gray-800 font-medium rounded-full py-2 px-4" id="btn-request-close">
+        닫기
+      </button>
+<button class="flex-1 bg-teal text-white font-medium rounded-full py-2 px-4" id="btn-request-ok">
+        OK
+      </button>
+</div>
+</div>
+</div>
+<!-- Complete Modal -->
+<div class="modal-overlay absolute inset-0 bg-black/50 z-50 items-center justify-center px-6 backdrop-blur-sm" id="complete-modal">
+<div class="bg-white rounded-[20px] w-full max-w-sm overflow-hidden flex flex-col items-center shadow-2xl pb-6">
+<div class="py-10 px-6 text-center w-full">
+<h2 class="text-xl font-bold text-gray-900">주입이 완료되었습니다</h2>
+</div>
+<button class="bg-teal text-white font-medium rounded-full py-2 px-10 min-w-[120px]" id="btn-complete-ok">
+        OK
+      </button>
+</div>
+</div>
+<!-- END: Modals -->
+<script data-purpose="dashboard-logic">
+    // 최종 빌드 시 false로 설정하여 시뮬레이션 타이머를 비활성화할 수 있습니다.
+    const CONFIG_USE_TIMER = true;
+    localStorage.removeItem('CONFIG_USE_TIMER');
+
+    const ACTION_SCREEN_PATHS = {
+      meal: '../meal_injection/code.html',
+      extra: '../add_injection/code.html',
+      dining: '../dining/code.html',
+      exercise: '../exercise/code.html'
+    };
+
+    let globalState = {
+      isInjecting: false,
+      activeModal: null,
+      pendingAction: null,
+      pendingPayload: null,
+      completionTimer: null
+    };
+
+    // 토스트 UI 표시 함수
+    function showToast(message) {
+      const toast = document.createElement('div');
+      toast.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 bg-slate-800/90 text-white text-[13px] px-5 py-3 rounded-full shadow-lg z-[9999] transition-all duration-300 opacity-0 transform translate-y-2 pointer-events-none whitespace-nowrap font-medium';
+      toast.innerText = message;
+      document.body.appendChild(toast);
+      
+      toast.offsetHeight; // force reflow
+      toast.classList.remove('opacity-0', 'translate-y-2');
+      toast.classList.add('opacity-100', 'translate-y-0');
+      
+      setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 2000);
+    }
+
+    window.showAppToast = showToast;
+
+    function navigateToAction(actionKey) {
+      if (localStorage.getItem('isInjecting') === 'true') {
+        showToast('주입 중에서 수행할 수 없습니다');
+        return;
+      }
+      const targetPath = ACTION_SCREEN_PATHS[actionKey];
+      if (!targetPath) {
+        return;
+      }
+      window.location.href = targetPath;
+    }
+
+    window.navigateToAction = navigateToAction;
+
+    function resetDashboardUrl() {
+      history.replaceState(null, '', window.location.pathname);
+    }
+
+    function parsePendingPayload(rawPayload) {
+      if (!rawPayload) {
+        return {};
+      }
+
+      try {
+        return JSON.parse(decodeURIComponent(rawPayload));
+      } catch (error) {
+        return {};
+      }
+    }
+
+    function buildCommandText(action, payload) {
+      const parsed = parsePendingPayload(payload);
+
+      if (action === 'meal') {
+        return `BLE 명령 전송: SEND_MEAL_INJECTION_COMMAND: ${parsed.breakfast || '1.00'} U 아침, ${parsed.lunch || '1.00'} U 점심, ${parsed.dinner || '1.00'} U 저녁`;
+      }
+
+      if (action === 'extra') {
+        return `BLE 명령 전송: SEND_ADD_INJECTION_COMMAND: ${parsed.value || '0.00'} U`;
+      }
+
+      if (action === 'dining') {
+        return `BLE 명령 전송: SEND_DINING_COMMAND: ${parsed.time || '1'}시간`;
+      }
+
+      if (action === 'exercise') {
+        return `BLE 명령 전송: SEND_EXERCISE_COMMAND: ${parsed.time || '1'}시간, ${parsed.reduction || '20'}% 감소`;
+      }
+
+      return 'BLE 명령 전송: UNKNOWN_COMMAND';
+    }
+
+    function clearPendingRequest() {
+      globalState.pendingAction = null;
+      globalState.pendingPayload = null;
+    }
+
+    function openModal(modalType) {
+      closeAllModals();
+      globalState.activeModal = modalType;
+      const modalEl = document.getElementById(`${modalType}-modal`);
+      if (modalEl) {
+        modalEl.classList.add('active');
+      }
+    }
+
+    function closeAllModals() {
+      document.querySelectorAll('.modal-overlay').forEach(el => {
+        el.classList.remove('active');
+      });
+      globalState.activeModal = null;
+    }
+
+    function updateInjectingBadge() {
+      const badge = document.getElementById('badge-injecting');
+      if (!badge) {
+        return;
+      }
+
+      if (globalState.isInjecting) {
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+
+    function clearCompletionSimulation() {
+      if (globalState.completionTimer) {
+        clearTimeout(globalState.completionTimer);
+        globalState.completionTimer = null;
+      }
+    }
+
+    function triggerComplete() {
+      console.log('BLE 수신 시뮬레이션: BT_INJ_STOP_IND (0x3B) 주입 완료 수신');
+      globalState.completionTimer = null;
+      openModal('complete');
+      globalState.isInjecting = false;
+      localStorage.setItem('isInjecting', 'false');
+      localStorage.removeItem('injectingEndTime');
+      updateInjectingBadge();
+    }
+
+    function scheduleCompletionSimulation() {
+      clearCompletionSimulation();
+      const useTimer = CONFIG_USE_TIMER && (localStorage.getItem('CONFIG_USE_TIMER') !== 'false');
+      if (!useTimer) return;
+
+      const endTime = parseInt(localStorage.getItem('injectingEndTime') || '0', 10);
+      const now = Date.now();
+      const delay = endTime - now;
+
+      if (delay <= 0) {
+        triggerComplete();
+      } else {
+        globalState.completionTimer = setTimeout(triggerComplete, delay);
+      }
+    }
+
+    function handleRequestAccept() {
+      if (!globalState.pendingAction) {
+        closeAllModals();
+        resetDashboardUrl();
+        return;
+      }
+
+      console.log(buildCommandText(globalState.pendingAction, globalState.pendingPayload));
+      globalState.isInjecting = true;
+      localStorage.setItem('isInjecting', 'true');
+      localStorage.setItem('injectingEndTime', (Date.now() + 5000).toString());
+      updateInjectingBadge();
+      clearPendingRequest();
+      closeAllModals();
+      resetDashboardUrl();
+      scheduleCompletionSimulation();
+    }
+
+    function handleRequestClose() {
+      clearCompletionSimulation();
+      clearPendingRequest();
+      closeAllModals();
+      resetDashboardUrl();
+    }
+
+    function handleEmergencyConfirm() {
+      console.log('BLE 명령 전송: 긴급 정지');
+      clearCompletionSimulation();
+      globalState.isInjecting = false;
+      localStorage.setItem('isInjecting', 'false');
+      localStorage.removeItem('injectingEndTime');
+      updateInjectingBadge();
+      clearPendingRequest();
+      closeAllModals();
+      resetDashboardUrl();
+    }
+
+    function handleCompleteConfirm() {
+      clearCompletionSimulation();
+      globalState.isInjecting = false;
+      localStorage.setItem('isInjecting', 'false');
+      localStorage.removeItem('injectingEndTime');
+      updateInjectingBadge();
+      clearPendingRequest();
+      closeAllModals();
+      resetDashboardUrl();
+    }
+
+    function applyRequestFromQuery() {
+      const params = new URLSearchParams(window.location.search);
+      const modalType = params.get('modal');
+      const action = params.get('action');
+      const payload = params.get('payload');
+
+      if (modalType === 'request' && action) {
+        globalState.pendingAction = action;
+        globalState.pendingPayload = payload;
+        openModal('request');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const state = {
+        dashboardData: {
+          basal: '0.0',
+          meal: '0.0',
+          add: '0.0',
+          battery: 50,
+          insulinCurrent: 70,
+          insulinMax: 300
+        },
+        isBluetoothConnected: true
+      };
+
+      const els = {
+        valBasal: document.getElementById('val-basal'),
+        valMeal: document.getElementById('val-meal'),
+        valAdd: document.getElementById('val-add'),
+        valBatteryPct: document.getElementById('val-battery-pct'),
+        barBattery: document.getElementById('bar-battery'),
+        valInsulin: document.getElementById('val-insulin'),
+        barInsulin: document.getElementById('bar-insulin'),
+        btnBluetooth: document.getElementById('btn-bluetooth'),
+        btnRefresh: document.getElementById('btn-refresh'),
+        btnEmergency: document.getElementById('btn-emergency'),
+        btnEmergencyOk: document.getElementById('btn-modal-ok'),
+        btnRequestOk: document.getElementById('btn-request-ok'),
+        btnRequestClose: document.getElementById('btn-request-close'),
+        btnCompleteOk: document.getElementById('btn-complete-ok')
+      };
+
+      function render() {
+        const { dashboardData, isBluetoothConnected } = state;
+
+        els.valBasal.textContent = dashboardData.basal;
+        els.valMeal.textContent = dashboardData.meal;
+        els.valAdd.textContent = dashboardData.add;
+        els.valBatteryPct.textContent = `${dashboardData.battery}%`;
+        els.valInsulin.textContent = `${dashboardData.insulinCurrent} / ${dashboardData.insulinMax} U`;
+
+        els.barBattery.style.width = `${dashboardData.battery}%`;
+        const insulinPct = (dashboardData.insulinCurrent / dashboardData.insulinMax) * 100;
+        els.barInsulin.style.width = `${Math.min(100, Math.max(0, insulinPct))}%`;
+
+        els.btnBluetooth.style.display = isBluetoothConnected ? 'block' : 'none';
+      }
+
+      els.btnRefresh.addEventListener('click', () => {
+        els.btnRefresh.querySelector('span').classList.add('animate-spin');
+        setTimeout(() => {
+          els.btnRefresh.querySelector('span').classList.remove('animate-spin');
+        }, 500);
+      });
+
+      els.btnEmergency.addEventListener('click', () => {
+        openModal('emergency');
+      });
+
+      els.btnEmergencyOk.addEventListener('click', handleEmergencyConfirm);
+      els.btnRequestOk.addEventListener('click', handleRequestAccept);
+      els.btnRequestClose.addEventListener('click', handleRequestClose);
+      els.btnCompleteOk.addEventListener('click', handleCompleteConfirm);
+
+      // 토스트 메시지 대기 중인 경우 출력
+      const pendingToast = localStorage.getItem('showToastMsg');
+      if (pendingToast) {
+        localStorage.removeItem('showToastMsg');
+        showToast(pendingToast);
+      }
+
+      // 주입 상태 로드
+      const isInjecting = localStorage.getItem('isInjecting') === 'true';
+      if (isInjecting) {
+        globalState.isInjecting = true;
+        scheduleCompletionSimulation();
+      } else {
+        if (localStorage.getItem('showCompleteModal') === 'true') {
+          localStorage.removeItem('showCompleteModal');
+          openModal('complete');
+        }
+      }
+
+      render();
+      updateInjectingBadge();
+      applyRequestFromQuery();
+
+      // 외부 스토리지 변경 실시간 수신 (BLE 완료 처리 대응)
+      window.addEventListener('storage', (e) => {
+        if (e.key === 'isInjecting') {
+          const updatedInjecting = localStorage.getItem('isInjecting') === 'true';
+          if (!updatedInjecting && globalState.isInjecting) {
+            // 다른 페이지에서 완료 처리 후 대시보드로 왔거나 실시간으로 완료된 경우
+            clearCompletionSimulation();
+            globalState.isInjecting = false;
+            updateInjectingBadge();
+            openModal('complete');
+          } else if (updatedInjecting && !globalState.isInjecting) {
+            globalState.isInjecting = true;
+            updateInjectingBadge();
+            scheduleCompletionSimulation();
+          }
+        }
+        if (e.key === 'isInjecting' || e.key === 'injectingEndTime' || e.key === 'CONFIG_USE_TIMER') {
+          scheduleCompletionSimulation();
+        }
+      });
+    });
+  </script>
+</body></html>

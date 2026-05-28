@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+
+<html lang="ko" style=""><head>
+<script>
+  (function() {
+    const CONFIG_USE_TIMER = true; 
+    const isInjecting = localStorage.getItem('isInjecting') === 'true';
+    const currentPath = window.location.pathname;
+    const preventPaths = ['meal_injection', 'add_injection', 'dining', 'exercise'];
+    const isPreventPath = preventPaths.some(path => currentPath.includes(path));
+    
+    function showToast(message) {
+      const toast = document.createElement('div');
+      toast.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 bg-slate-800/90 text-white text-[13px] px-5 py-3 rounded-full shadow-lg z-[9999] transition-all duration-300 opacity-0 transform translate-y-2 pointer-events-none whitespace-nowrap font-medium';
+      toast.innerText = message;
+      document.body.appendChild(toast);
+      
+      toast.offsetHeight;
+      toast.classList.remove('opacity-0', 'translate-y-2');
+      toast.classList.add('opacity-100', 'translate-y-0');
+      
+      setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 2000);
+    }
+    
+    if (isInjecting && isPreventPath) {
+      localStorage.setItem('showToastMsg', '주입 중에서 수행할 수 없습니다');
+      window.location.href = '../dashboard/code.html';
+      return;
+    }
+    
+    let activeTimer = null;
+    
+    function checkInjectingStatus() {
+      const activeInjecting = localStorage.getItem('isInjecting') === 'true';
+      if (!activeInjecting) {
+        if (activeTimer) {
+          clearTimeout(activeTimer);
+          activeTimer = null;
+        }
+        return;
+      }
+      
+      const endTime = parseInt(localStorage.getItem('injectingEndTime') || '0', 10);
+      const now = Date.now();
+      const useTimer = CONFIG_USE_TIMER && (localStorage.getItem('CONFIG_USE_TIMER') !== 'false');
+      
+      if (useTimer && endTime > 0) {
+        if (now >= endTime) {
+          triggerComplete();
+        } else {
+          const delay = endTime - now;
+          if (activeTimer) clearTimeout(activeTimer);
+          activeTimer = setTimeout(triggerComplete, delay);
+        }
+      }
+    }
+    
+    function triggerComplete() {
+      console.log('BLE 수신 시뮬레이션: BT_INJ_STOP_IND (0x3B) 주입 완료 수신');
+      localStorage.setItem('isInjecting', 'false');
+      localStorage.removeItem('injectingEndTime');
+      localStorage.setItem('showCompleteModal', 'true');
+      window.location.href = '../dashboard/code.html';
+    }
+    
+    function init() {
+      const pendingToast = localStorage.getItem('showToastMsg');
+      if (pendingToast) {
+        localStorage.removeItem('showToastMsg');
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', () => showToast(pendingToast));
+        } else {
+          showToast(pendingToast);
+        }
+      }
+      checkInjectingStatus();
+    }
+    
+    init();
+    
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'isInjecting') {
+        const updatedInjecting = localStorage.getItem('isInjecting') === 'true';
+        if (updatedInjecting && isPreventPath) {
+          localStorage.setItem('showToastMsg', '주입 중에서 수행할 수 없습니다');
+          window.location.href = '../dashboard/code.html';
+        } else if (!updatedInjecting && isInjecting && !isPreventPath) {
+          localStorage.setItem('showCompleteModal', 'true');
+          window.location.href = '../dashboard/code.html';
+        }
+      }
+      if (e.key === 'isInjecting' || e.key === 'injectingEndTime' || e.key === 'CONFIG_USE_TIMER') {
+        checkInjectingStatus();
+      }
+    });
+  })();
+</script><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>사용 방법 정보 - Serene Medical</title>
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts: Noto Sans KR -->
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: '#509194',
+            surface: {
+              DEFAULT: '#f8fafa',
+              dim: '#d8dada',
+              bright: '#f8fafa',
+              container: {
+                lowest: '#ffffff',
+                low: '#f2f4f4',
+              }
+            }
+          },
+          fontFamily: {
+            sans: ['Noto Sans KR', 'sans-serif'],
+          },
+          borderRadius: {
+            'eight': '8px',
+          }
+        }
+      }
+    }
+  </script>
+<style data-purpose="layout-styles">
+    body {
+      background-color: #f8fafa;
+      -webkit-tap-highlight-color: transparent;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      padding: 12px 0;
+      box-sizing: border-box;
+    }
+    .safe-area-bottom {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    .app-container {
+      width: 390px;
+      max-width: calc(100vw - 32px);
+      height: 884px;
+      max-height: calc(100vh - 24px);
+      margin: 0 auto;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      border-radius: 24px;
+      background-color: #ffffff;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.08);
+    }
+  </style>
+<style data-stitch-cursor=""></style><style data-stitch-scroll-lock=""></style></head>
+<body class="font-sans antialiased text-gray-800">
+<div class="app-container bg-white">
+<header class="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100 shrink-0 h-[104px]">
+<div class="flex items-center min-w-[40px]">
+<a href="../usage/code.html" aria-label="Go back" class="p-1 hover:bg-gray-100 rounded-full transition-colors">
+<span class="material-symbols-outlined" style="font-size: 24px; color: #1f6568;">arrow_back</span>
+</a>
+</div>
+<h1 class="text-lg font-bold text-gray-900 whitespace-nowrap">주입세트 교체 방법</h1>
+<div class="flex items-center gap-3 min-w-[40px] justify-end">
+<button type="button" onclick="window.location.reload()" aria-label="Sync" class="p-1 text-primary hover:bg-gray-100 rounded-full transition-colors">
+<span class="material-symbols-outlined" style="font-size: 24px; color: #1f6568;">sync</span>
+</button>
+<button aria-label="Bluetooth" class="p-1 text-primary hover:bg-gray-100 rounded-full transition-colors">
+<span class="material-symbols-outlined" style="font-size: 24px; color: #1f6568;">bluetooth</span>
+</button>
+</div>
+</header>
+<main class="flex-1 overflow-y-auto" data-purpose="content-list">
+<div class="divide-y divide-gray-100">
+<div class="w-full bg-[#E0E2E2] px-6 py-4 mt-2 mb-2">
+<h2 class="text-base font-bold text-gray-900">주입세트 교체 절차</h2>
+</div>
+<div class="px-6 mt-4 mb-6">
+<div class="bg-white rounded-xl shadow-sm border border-gray-100">
+<img alt="인슐린 펌프 주입세트 교체 절차 인포그래픽" class="w-full object-contain h-full" src="./images/infusionset_change.png"/>
+</div>
+</div>
+</div>
+</main>
+<nav class="absolute bottom-0 w-full z-50 bg-white border-t border-gray-100 flex justify-around items-center h-[80px] px-2 pb-safe shadow-lg">
+<a href="../dashboard/code.html" class="flex flex-col items-center justify-center w-1/4 text-gray-900 hover:text-gray-900 transition-colors decoration-none">
+<span class="material-symbols-outlined text-[24px] mb-1" style="color: #111827;">home</span>
+<span class="text-[11px] font-medium text-gray-900">홈</span>
+</a>
+<a href="../main_setting/code.html" class="flex flex-col items-center justify-center w-1/4 text-gray-900 hover:text-gray-900 transition-colors decoration-none">
+<span class="material-symbols-outlined text-[24px] mb-1" style="color: #111827;">settings</span>
+<span class="text-[11px] font-medium text-gray-900">설정</span>
+</a>
+<a href="../history/code.html" class="flex flex-col items-center justify-center w-1/4 text-gray-900 hover:text-gray-900 transition-colors decoration-none">
+<span class="material-symbols-outlined text-[24px] mb-1" style="color: #111827;">history</span>
+<span class="text-[11px] font-medium text-gray-900">기록</span>
+</a>
+<a href="../infomation/code.html" class="flex flex-col items-center justify-center w-1/4 text-[#509194] decoration-none">
+<span class="material-symbols-outlined text-[24px] mb-1" style='font-variation-settings: "FILL" 1; color: #509194;'>info</span>
+<span class="text-[11px] font-bold text-[#509194]">정보</span>
+</a>
+</nav>
+</div>
+</body></html>

@@ -1,0 +1,1 @@
+# The Shield of Assurance: Phase 2 디자인 스펙 및 컴포넌트 정의 (Figma 준비)

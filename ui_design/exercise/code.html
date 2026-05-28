@@ -1,0 +1,266 @@
+<!DOCTYPE html><html lang="ko"><head>
+<script>
+  (function() {
+    const CONFIG_USE_TIMER = true; 
+    const isInjecting = localStorage.getItem('isInjecting') === 'true';
+    const currentPath = window.location.pathname;
+    const preventPaths = ['meal_injection', 'add_injection', 'dining', 'exercise'];
+    const isPreventPath = preventPaths.some(path => currentPath.includes(path));
+    
+    function showToast(message) {
+      const toast = document.createElement('div');
+      toast.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 bg-slate-800/90 text-white text-[13px] px-5 py-3 rounded-full shadow-lg z-[9999] transition-all duration-300 opacity-0 transform translate-y-2 pointer-events-none whitespace-nowrap font-medium';
+      toast.innerText = message;
+      document.body.appendChild(toast);
+      
+      toast.offsetHeight;
+      toast.classList.remove('opacity-0', 'translate-y-2');
+      toast.classList.add('opacity-100', 'translate-y-0');
+      
+      setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 2000);
+    }
+    
+    if (isInjecting && isPreventPath) {
+      localStorage.setItem('showToastMsg', '주입 중에서 수행할 수 없습니다');
+      window.location.href = '../dashboard/code.html';
+      return;
+    }
+    
+    let activeTimer = null;
+    
+    function checkInjectingStatus() {
+      const activeInjecting = localStorage.getItem('isInjecting') === 'true';
+      if (!activeInjecting) {
+        if (activeTimer) {
+          clearTimeout(activeTimer);
+          activeTimer = null;
+        }
+        return;
+      }
+      
+      const endTime = parseInt(localStorage.getItem('injectingEndTime') || '0', 10);
+      const now = Date.now();
+      const useTimer = CONFIG_USE_TIMER && (localStorage.getItem('CONFIG_USE_TIMER') !== 'false');
+      
+      if (useTimer && endTime > 0) {
+        if (now >= endTime) {
+          triggerComplete();
+        } else {
+          const delay = endTime - now;
+          if (activeTimer) clearTimeout(activeTimer);
+          activeTimer = setTimeout(triggerComplete, delay);
+        }
+      }
+    }
+    
+    function triggerComplete() {
+      console.log('BLE 수신 시뮬레이션: BT_INJ_STOP_IND (0x3B) 주입 완료 수신');
+      localStorage.setItem('isInjecting', 'false');
+      localStorage.removeItem('injectingEndTime');
+      localStorage.setItem('showCompleteModal', 'true');
+      window.location.href = '../dashboard/code.html';
+    }
+    
+    function init() {
+      const pendingToast = localStorage.getItem('showToastMsg');
+      if (pendingToast) {
+        localStorage.removeItem('showToastMsg');
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', () => showToast(pendingToast));
+        } else {
+          showToast(pendingToast);
+        }
+      }
+      checkInjectingStatus();
+    }
+    
+    init();
+    
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'isInjecting') {
+        const updatedInjecting = localStorage.getItem('isInjecting') === 'true';
+        if (updatedInjecting && isPreventPath) {
+          localStorage.setItem('showToastMsg', '주입 중에서 수행할 수 없습니다');
+          window.location.href = '../dashboard/code.html';
+        } else if (!updatedInjecting && isInjecting && !isPreventPath) {
+          localStorage.setItem('showCompleteModal', 'true');
+          window.location.href = '../dashboard/code.html';
+        }
+      }
+      if (e.key === 'isInjecting' || e.key === 'injectingEndTime' || e.key === 'CONFIG_USE_TIMER') {
+        checkInjectingStatus();
+      }
+    });
+  })();
+</script>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>운동 적용</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<style data-purpose="custom-styles">
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+    
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background-color: #f8f9fa; /* Assuming a slight off-white background based on typical mobile apps, though screenshot looks white. Let's stick to white for the main container */
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      margin: 0;
+    }
+
+    .mobile-container {
+      width: 100%;
+      max-width: 390px;
+      min-height: 884px;
+      background-color: #ffffff;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Custom select styling to remove default arrow and add padding */
+    select {
+      appearance: none;
+      background-image: none;
+    }
+  </style>
+</head>
+<body>
+<!-- BEGIN: Mobile App Container -->
+<div class="mobile-container overflow-hidden">
+<!-- BEGIN: Header -->
+<!-- Simulating 2 lines empty space above heading -->
+<div class="pt-8 pb-3 px-5 mt-6">
+<h1 class="text-2xl font-bold text-gray-800">운동 적용</h1>
+</div>
+<!-- END: Header -->
+<!-- BEGIN: Main Content -->
+<main class="flex-1 px-5 overflow-y-auto pb-24 flex flex-col">
+<!-- Info Box -->
+<div class="bg-gray-50 rounded-xl p-4 border border-gray-100 shadow-sm">
+<div class="flex items-start gap-2 mb-2">
+<!-- Info Icon -->
+<svg class="w-4 h-4 text-teal-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+<div>
+<h2 class="text-sm font-bold text-teal-700">안전한 운동을 위해</h2>
+<p class="text-xs text-gray-600 leading-tight mt-1">
+              운동적용은 "운동할 시간"과 "감량비율"을 설정한 후 그 시간 만큼 기초설정의 값을 감량하여 주입
+            </p>
+</div>
+</div>
+<ul class="list-disc pl-7 text-xs text-gray-600 space-y-1">
+<li class="">운동시간을 1시간~8시간까지 설정가능</li>
+<li class="">설정된 시간마다 운동감량 비율을 10%~100%까지 설정 또는 해제가능</li>
+</ul>
+</div>
+<!-- Settings Form -->
+<div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+<!-- Time Setting -->
+<div class="mb-4">
+<label class="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+<!-- Clock Icon -->
+<svg class="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+            시간 설정
+          </label>
+<div class="relative">
+<select class="block w-full rounded-lg border-gray-300 bg-gray-50 py-3 pl-4 pr-4 text-lg text-gray-800 focus:border-teal-500 focus:ring-teal-500 font-medium">
+<option value="1">1시간</option>
+<option value="2">2시간</option>
+<option value="3">3시간</option>
+<option value="4">4시간</option>
+<option value="5">5시간</option>
+<option value="6">6시간</option>
+<option value="7">7시간</option>
+<option value="8">8시간</option>
+</select>
+</div>
+</div>
+<!-- Reduction Setting -->
+<div>
+<label class="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+<!-- Trending Down Icon -->
+<svg class="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+            감량 설정
+          </label>
+<div class="relative">
+<select class="block w-full rounded-lg border-gray-300 bg-gray-50 py-3 pl-4 pr-4 text-lg text-gray-800 focus:border-teal-500 focus:ring-teal-500 font-medium">
+<option value="20">20% 감소</option>
+<option value="40">40% 감소</option>
+<option value="60">60% 감소</option>
+<option value="80">80% 감소</option>
+</select>
+</div>
+</div>
+</div>
+<!-- Decorative Image Container -->
+<div class="rounded-xl overflow-hidden shadow-sm h-48 relative border border-gray-100">
+<img alt="Exercise Wellness Tracker" class="w-full h-full object-cover" src="./images/exercise.png">
+</div>
+</main>
+<!-- END: Main Content -->
+<!-- BEGIN: Bottom Action Buttons -->
+<div class="absolute bottom-0 left-0 right-0 bg-white flex gap-3 pb-12 px-5">
+<button class="flex-1 bg-[#1A6D6D] text-white py-4 rounded-full font-bold text-lg hover:bg-teal-800 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2" type="button">
+        운동적용
+      </button>
+<button class="flex-1 bg-gray-200 text-gray-800 py-4 rounded-full font-bold text-lg hover:bg-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2" type="button">
+        닫기
+      </button>
+</div>
+<!-- END: Bottom Action Buttons -->
+</div>
+<!-- END: Mobile App Container -->
+<script data-purpose="mock-logic">
+    // Mocking React Context and Hooks
+    const InjectionContext = {
+      isInjecting: false,
+      startInjection: () => {
+        InjectionContext.isInjecting = true;
+        console.log('Action: isInjecting set to true');
+      }
+    };
+
+    const useNavigate = () => {
+      return (path, options) => {
+        console.log(`Action: navigate to '${path}'`, options ? `, state: ${JSON.stringify(options.state)}` : '');
+      };
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const applyBtn = document.querySelector('button.bg-\\[\\#1A6D6D\\]');
+      const closeBtn = document.querySelector('button.bg-gray-200');
+      const timeSelect = document.querySelectorAll('select')[0];
+      const reductionSelect = document.querySelectorAll('select')[1];
+
+      const goToDashboard = (params = {}) => {
+        const query = new URLSearchParams(params).toString();
+        window.location.href = `../dashboard/code.html${query ? `?${query}` : ''}`;
+      };
+
+      applyBtn.addEventListener('click', () => {
+        const time = timeSelect.value;
+        const reduction = reductionSelect.value;
+        const payload = encodeURIComponent(JSON.stringify({ time, reduction }));
+
+        goToDashboard({
+          modal: 'request',
+          action: 'exercise',
+          payload
+        });
+      });
+
+      closeBtn.addEventListener('click', () => {
+        goToDashboard();
+      });
+    });
+  </script>
+
+
+</body></html>

@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<script>
+  (function() {
+    const CONFIG_USE_TIMER = true; 
+    const isInjecting = localStorage.getItem('isInjecting') === 'true';
+    const currentPath = window.location.pathname;
+    const preventPaths = ['meal_injection', 'add_injection', 'dining', 'exercise'];
+    const isPreventPath = preventPaths.some(path => currentPath.includes(path));
+    
+    function showToast(message) {
+      const toast = document.createElement('div');
+      toast.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 bg-slate-800/90 text-white text-[13px] px-5 py-3 rounded-full shadow-lg z-[9999] transition-all duration-300 opacity-0 transform translate-y-2 pointer-events-none whitespace-nowrap font-medium';
+      toast.innerText = message;
+      document.body.appendChild(toast);
+      
+      toast.offsetHeight;
+      toast.classList.remove('opacity-0', 'translate-y-2');
+      toast.classList.add('opacity-100', 'translate-y-0');
+      
+      setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 2000);
+    }
+    
+    if (isInjecting && isPreventPath) {
+      localStorage.setItem('showToastMsg', '주입 중에서 수행할 수 없습니다');
+      window.location.href = '../dashboard/code.html';
+      return;
+    }
+    
+    let activeTimer = null;
+    
+    function checkInjectingStatus() {
+      const activeInjecting = localStorage.getItem('isInjecting') === 'true';
+      if (!activeInjecting) {
+        if (activeTimer) {
+          clearTimeout(activeTimer);
+          activeTimer = null;
+        }
+        return;
+      }
+      
+      const endTime = parseInt(localStorage.getItem('injectingEndTime') || '0', 10);
+      const now = Date.now();
+      const useTimer = CONFIG_USE_TIMER && (localStorage.getItem('CONFIG_USE_TIMER') !== 'false');
+      
+      if (useTimer && endTime > 0) {
+        if (now >= endTime) {
+          triggerComplete();
+        } else {
+          const delay = endTime - now;
+          if (activeTimer) clearTimeout(activeTimer);
+          activeTimer = setTimeout(triggerComplete, delay);
+        }
+      }
+    }
+    
+    function triggerComplete() {
+      console.log('BLE 수신 시뮬레이션: BT_INJ_STOP_IND (0x3B) 주입 완료 수신');
+      localStorage.setItem('isInjecting', 'false');
+      localStorage.removeItem('injectingEndTime');
+      localStorage.setItem('showCompleteModal', 'true');
+      window.location.href = '../dashboard/code.html';
+    }
+    
+    function init() {
+      const pendingToast = localStorage.getItem('showToastMsg');
+      if (pendingToast) {
+        localStorage.removeItem('showToastMsg');
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', () => showToast(pendingToast));
+        } else {
+          showToast(pendingToast);
+        }
+      }
+      checkInjectingStatus();
+    }
+    
+    init();
+    
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'isInjecting') {
+        const updatedInjecting = localStorage.getItem('isInjecting') === 'true';
+        if (updatedInjecting && isPreventPath) {
+          localStorage.setItem('showToastMsg', '주입 중에서 수행할 수 없습니다');
+          window.location.href = '../dashboard/code.html';
+        } else if (!updatedInjecting && isInjecting && !isPreventPath) {
+          localStorage.setItem('showCompleteModal', 'true');
+          window.location.href = '../dashboard/code.html';
+        }
+      }
+      if (e.key === 'isInjecting' || e.key === 'injectingEndTime' || e.key === 'CONFIG_USE_TIMER') {
+        checkInjectingStatus();
+      }
+    });
+  })();
+</script>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Device Search - Heal Us</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script crossorigin="" src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script crossorigin="" src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">tailwind.config = {darkMode: "class", theme: {extend: {colors: {outline: "#6f7979", "on-error": "#ffffff", "on-secondary-fixed": "#3f001b", "outline-variant": "#bfc8c8", secondary: "#ab2c5d", "inverse-primary": "#90d2d5", "on-tertiary-container": "#f3fffe", "on-primary": "#ffffff", "primary-fixed": "#aceef1", "surface-container-lowest": "#ffffff", "inverse-on-surface": "#eff1f1", "on-surface": "#191c1d", "surface-container-highest": "#e1e3e3", "surface-dim": "#d8dada", "on-secondary": "#ffffff", "surface-tint": "#22686b", surface: "#f8fafa", "surface-container": "#eceeee", "on-secondary-fixed-variant": "#8b0e45", "secondary-fixed": "#ffd9e1", "on-background": "#191c1d", "surface-variant": "#e1e3e3", "tertiary-fixed-dim": "#b8cac9", "on-primary-fixed": "#002021", "surface-container-high": "#e6e8e9", "surface-container-low": "#f2f4f4", "inverse-surface": "#2e3131", "secondary-fixed-dim": "#ffb1c5", tertiary: "#4f5f5f", background: "#f8fafa", "surface-bright": "#f8fafa", "error-container": "#ffdad6", "on-primary-container": "#f3ffff", "on-surface-variant": "#3f4849", "secondary-container": "#fd6c9c", "tertiary-container": "#677877", "on-tertiary-fixed-variant": "#3a4a49", "on-secondary-container": "#6e0034", "on-error-container": "#93000a", "on-tertiary-fixed": "#0e1e1e", error: "#ba1a1a", "primary-container": "#3c7e81", primary: "#1f6568", "on-tertiary": "#ffffff", "on-primary-fixed-variant": "#004f52", "primary-fixed-dim": "#90d2d5", "tertiary-fixed": "#d4e6e5"}, borderRadius: {DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px"}, spacing: {"margin-mobile": "16px", gutter: "16px", md: "24px", sm: "12px", xs: "4px", base: "8px", lg: "40px", xl: "32px", xxl: "48px", xxs: "4px"}, fontFamily: {"body-md": ["Noto Sans"], "display-lg": ["Nunito Sans"], "data-lg": ["Nunito Sans"], "label-sm": ["Noto Sans"], "headline-md": ["Nunito Sans"], "body-lg": ["Noto Sans"], "headline-lg": ["Nunito Sans"], "label-md": ["Inter"], "label-lg": ["Inter"], "title-lg": ["Nunito Sans"], headline: ["Noto Sans"], display: ["Noto Sans"], body: ["Noto Sans"], label: ["Noto Sans"]}, fontSize: {"body-md": ["16px", {lineHeight: "24px", fontWeight: "400"}], "display-lg": ["32px", {lineHeight: "40px", letterSpacing: "-0.02em", fontWeight: "700"}], "data-lg": ["48px", {lineHeight: "48px", fontWeight: "800"}], "label-sm": ["13px", {lineHeight: "16px", letterSpacing: "0.03em", fontWeight: "600"}], "headline-md": ["24px", {lineHeight: "32px", fontWeight: "600"}], "body-lg": ["18px", {lineHeight: "28px", fontWeight: "400"}], "headline-lg": ["32px", {lineHeight: "40px", fontWeight: "400"}], "label-md": ["12px", {lineHeight: "16px", fontWeight: "500"}], "label-lg": ["14px", {lineHeight: "20px", fontWeight: "500"}], "title-lg": ["22px", {lineHeight: "28px", fontWeight: "500"}]}}}};</script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .bg-mesh {
+            background-color: #f8fafa;
+            background-image: radial-gradient(at 100% 0%, rgba(80, 145, 148, 0.05) 0px, transparent 50%),
+                              radial-gradient(at 0% 100%, rgba(171, 44, 93, 0.03) 0px, transparent 50%);
+        }
+        body {
+            width: 100%;
+            min-height: 100vh;
+            margin: 0;
+            padding: 12px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f8fafa;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+        #root {
+            width: 390px;
+            height: 884px;
+            max-width: calc(100vw - 32px);
+            max-height: calc(100vh - 24px);
+            position: relative;
+            overflow: hidden;
+            border-radius: 24px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.08);
+            background-color: #f8fafa;
+        }
+        main {
+            height: calc(884px - 64px);
+            overflow-y: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        main::-webkit-scrollbar {
+            display: none;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(10px); }
+            10% { opacity: 1; transform: translateY(0); }
+            90% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-10px); }
+        }
+    </style>
+</head>
+<body class="bg-mesh text-on-surface font-body-md border-x border-slate-100 shadow-2xl">
+<div id="root"></div>
+<script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const mockDevice = { 
+            name: 'HealUS', 
+            mac: '20:73:6A:19:3E:41', 
+            signal: '신호 강함' 
+        };
+
+        function App() {
+            const [currentStep, setCurrentStep] = useState('searching');
+            const [showPermissionBox, setShowPermissionBox] = useState(true);
+            const [foundDevices, setFoundDevices] = useState([]);
+            const [toast, setToast] = useState(null);
+
+            const showToast = (message) => {
+                setToast(message);
+                setTimeout(() => setToast(null), 3000);
+            };
+
+            const handleAllow = () => {
+                setShowPermissionBox(false);
+                setFoundDevices([]);
+                setTimeout(() => {
+                    setFoundDevices([mockDevice]);
+                }, 1200);
+            };
+
+            const handleDeny = () => {
+                setShowPermissionBox(false);
+                try {
+                    window.close();
+                } finally {
+                    if (!window.closed) {
+                        window.location.replace('about:blank');
+                    }
+                }
+            };
+
+            const handleDeviceClick = () => {
+                window.location.assign('../password/code.html');
+            };
+
+            return (
+                <div className="h-full w-full relative bg-mesh overflow-hidden">
+                    {/* TopAppBar */}
+                    <div className="h-16 w-full shrink-0">
+                        <div className="flex items-center px-4 h-full">
+                            <div className="flex items-center gap-2 group">
+                                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
+                                    <span className="material-symbols-outlined" style={{fontVariationSettings: "'FILL' 1"}}>monitor_heart</span>
+                                </div>
+                                <span className="font-display text-lg font-bold text-on-surface">HealUs</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <main className="w-full px-margin-mobile pt-sm pb-8 space-y-6">
+                        {currentStep === 'searching' ? (
+                            <>
+                                {/* Alert Banner */}
+                                <div className="mt-xs bg-error-container/40 border border-error/10 rounded-xl p-4 flex items-start gap-3">
+                                    <span className="material-symbols-outlined text-error" style={{fontVariationSettings: "'FILL' 1"}}>warning</span>
+                                    <div>
+                                        <h3 className="text-error font-label-sm uppercase tracking-wider">조치가 필요함</h3>
+                                        <p className="text-on-error-container text-[13px] whitespace-nowrap font-medium mt-1">서비스를 이용하려면 장치 연결이 필요합니다</p>
+                                    </div>
+                                </div>
+
+                                {/* Search Status Section */}
+                                <div className="relative overflow-hidden bg-white rounded-3xl p-8 shadow-sm border border-outline-variant/30 text-center space-y-4">
+                                    <div className="relative w-24 h-24 mx-auto mb-6 flex items-center justify-center">
+                                        <div className={`absolute inset-0 border-2 border-primary/20 rounded-full ${!showPermissionBox && foundDevices.length === 0 ? 'animate-ping' : ''}`}></div>
+                                        <div className="absolute inset-0 border-2 border-primary/10 rounded-full scale-125 opacity-20"></div>
+                                        <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center">
+                                            <span className="material-symbols-outlined text-primary text-4xl">bluetooth_searching</span>
+                                        </div>
+                                    </div>
+                                    <h2 className="font-headline-md text-headline-md text-on-background">장치 선택</h2>
+                                    <div className="flex items-center justify-center gap-2 text-primary h-6">
+                                        {!showPermissionBox && foundDevices.length === 0 && (
+                                            <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+                                        )}
+                                        <span className="font-label-sm">
+                                            {showPermissionBox ? '대기 중...' : (foundDevices.length === 0 ? '검색 중...' : '검색 완료')}
+                                        </span>
+                                    </div>
+                                    <p className="text-on-surface-variant font-body-md px-4">인슐린 펌프가 페어링 모드이고 근처에 있는지 확인하세요.</p>
+                                </div>
+
+                                {/* Devices List */}
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between px-1">
+                                        <span className="font-label-sm text-on-surface-variant uppercase tracking-widest">장치를 선택해주세요</span>
+                                    </div>
+                                    
+                                    {foundDevices.map((device, index) => (
+                                        <button 
+                                            key={index}
+                                            onClick={handleDeviceClick}
+                                            className="w-full bg-white border border-outline-variant/30 p-4 rounded-2xl flex items-center gap-4 hover:border-primary/50 transition-all active:scale-[0.98] shadow-sm cursor-pointer group"
+                                        >
+                                            <div className="w-12 h-12 bg-surface-container-high rounded-full flex items-center justify-center text-primary group-hover:bg-primary/5">
+                                                <span className="material-symbols-outlined" style={{fontVariationSettings: "'FILL' 1"}}>monitor_heart</span>
+                                            </div>
+                                            <div className="flex-1 text-left">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-headline-md text-body-lg text-on-surface">{device.name}</span>
+                                                    <span className="bg-primary/10 text-primary text-[10px] font-bold px-1.5 py-0.5 rounded-md uppercase">{device.signal}</span>
+                                                </div>
+                                                <code className="text-on-surface-variant font-label-sm tracking-tighter">{device.mac}</code>
+                                            </div>
+                                            <span className="material-symbols-outlined text-outline-variant">chevron_right</span>
+                                        </button>
+                                    ))}
+                                    
+                                    {foundDevices.length === 0 && !showPermissionBox && (
+                                        <div className="p-8 text-center text-on-surface-variant font-body-md">
+                                            발견된 장치가 없습니다.
+                                        </div>
+                                    )}
+                                </div>
+                            </>
+                        ) : (
+                            /* Password Step Placeholder */
+                            <div className="flex flex-col items-center justify-center py-12 space-y-6 animate-[slideUp_0.3s_ease-out]">
+                                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center text-primary">
+                                    <span className="material-symbols-outlined text-4xl">lock</span>
+                                </div>
+                                <div className="text-center space-y-2">
+                                    <h2 className="font-headline-md text-on-background">비밀번호 입력</h2>
+                                    <p className="text-on-surface-variant">펌프 화면에 표시된 PIN 번호를 입력하세요</p>
+                                </div>
+                                <div className="flex gap-3 justify-center">
+                                    {[1, 2, 3, 4, 5, 6].map(i => (
+                                        <div key={i} className="w-10 h-14 bg-white border border-outline-variant/30 rounded-xl flex items-center justify-center shadow-sm">
+                                            <div className="w-2 h-2 bg-outline-variant rounded-full"></div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <button 
+                                    onClick={() => setCurrentStep('searching')}
+                                    className="text-primary font-medium flex items-center gap-1 mt-4"
+                                >
+                                    <span className="material-symbols-outlined text-sm">arrow_back</span>
+                                    장치 재검색
+                                </button>
+                            </div>
+                        )}
+                    </main>
+
+                    {/* Toast Message */}
+                    {toast && (
+                        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-full text-sm font-medium shadow-xl z-[60] animate-[fadeInOut_3s_ease-in-out]">
+                            {toast}
+                        </div>
+                    )}
+
+                    {/* Permission Bottom Sheet Modal */}
+                    {showPermissionBox && (
+                        <div className="absolute inset-0 bg-black/40 z-50 flex flex-col justify-end">
+                            <div className="bg-slate-800 rounded-t-3xl p-6 w-full animate-[slideUp_0.3s_ease-out] shadow-[0_-8px_20px_rgba(0,0,0,0.2)]">
+                                <h3 className="text-white font-headline-md mb-8 leading-tight">
+                                    HealUS에서 블루투스 켜기를 요청합니다.
+                                </h3>
+                                <div className="flex gap-4">
+                                    <button 
+                                        onClick={handleDeny}
+                                        className="flex-1 py-4 px-4 rounded-2xl font-bold text-white bg-slate-700 hover:bg-slate-600 active:bg-slate-500 transition-colors"
+                                    >
+                                        거부
+                                    </button>
+                                    <button 
+                                        onClick={handleAllow}
+                                        className="flex-1 py-4 px-4 rounded-2xl font-bold text-white bg-primary hover:bg-primary/90 active:bg-primary/80 transition-colors"
+                                    >
+                                        허용
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body></html>
