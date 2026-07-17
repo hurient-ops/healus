@@ -1,3 +1,4 @@
+import * as crypto from 'crypto';
 import { encryptData, decryptData, manageDynamicKeys } from './auth_crypto';
 
 /**
@@ -24,7 +25,7 @@ export function checkRiskAlert(deviceId: string, receivedData: Buffer, expectedN
 
         return { status: 'OK', message: `데이터 수신 및 인증 성공. (길이: ${decryptedData.length})` };
 
-    } catch (e) {
+    } catch (e: any) {
         // 복호화 실패 또는 기타 오류 발생 시 즉시 에러 반환
         return { status: 'ERROR', message: `보안 모듈 오류: ${e.message}` };
     }
@@ -48,3 +49,13 @@ export function createRiskPacket(deviceId: string, payload: string, nonce: strin
         tag_hex: tag.toString('hex') // 인증 태그
     };
 }
+
+export function logEvent(eventType: string, data: any): void {
+    console.log(`[Event Logged] Type: ${eventType}, Data:`, JSON.stringify(data));
+}
+
+export const risk_alerting = {
+    checkRiskAlert,
+    createRiskPacket,
+    logEvent
+};

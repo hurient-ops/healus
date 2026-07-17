@@ -309,7 +309,7 @@
   - 펌프 기기의 PID를 요청한다.
   - Data length: 0
 4.  BT_PUMP_PID_RES
-  - 기기 교체 후 공기 빼기를 요청에 대한 응답
+  - 펌프 기기의 PID 요청에 대한 응답
   - Data length: 4.
   - Data
     - pump_pid: 4 bytes. 펌프의 PID를 전달한다.
@@ -833,7 +833,7 @@
 
 ## **Message Types**
 1.  BT_PRS_APP_PASSWD_IND
-  - 기존 Password정보를 전달한다. (앱 -\> 인슐린펌프)..
+  - 기존 Password정보를 전달한다. (인슐린펌프 -\> 앱)..
   - Data length: 6
   -------------------------------------------------------------
   **구분**                **Data     **Description**

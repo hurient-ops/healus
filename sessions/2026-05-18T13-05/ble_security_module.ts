@@ -20,17 +20,17 @@ export class BleSecurityModule {
         // 실제 AES-GCM 구현 로직 (여기서는 개념적 구조만 명시)
         const iv = this._generateIV(); // 초기화 벡터 생성
         const cipherText = await crypto.subtle.encrypt(
-            { name: "AES-GCM", iv: iv },
+            { name: "AES-GCM", iv: iv as any },
             this.encryptionKey,
-            data
+            data as any
         );
 
         // 인증 태그는 암호화된 데이터와 함께 전송되어야 함
-        const tag = await crypto.subtle.exportKeyData("raw", cipherText); // 실제 구현은 더 복잡함
+        const tag = new Uint8Array(cipherText).slice(-16); // 실제 구현은 더 복잡함
         
         return { 
             cipherText: btoa(String.fromCharCode(...new Uint8Array(cipherText))), // Base64 인코딩 예시
-            tag: btoa(String.fromCharCode(...new Uint8Array(tag))) // 인증 태그 (보안상 실제 구현 필요)
+            tag: btoa(String.fromCharCode(...tag)) // 인증 태그 (보안상 실제 구현 필요)
         };
     }
 

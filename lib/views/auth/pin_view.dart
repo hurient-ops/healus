@@ -85,9 +85,10 @@ class _PinViewState extends ConsumerState<PinView> with SingleTickerProviderStat
     // 2. InjectController를 통해 송신 큐에 패킷 전달
     ref.read(injectControllerProvider.notifier).queuePacket(packet);
 
-    // 3. 테스트 목적의 임시 비밀번호 검증 (000000)
-    // 실 기기가 연결되어 있지 않은 상태에서는 바로 홈 화면으로 진입할 수 있도록 구현
-    if (_pin == '000000' || _pin == '123456') {
+    // 3. 수신된 기기 비밀번호 검증
+    final pumpState = ref.read(pumpStateProvider);
+    final correctPassword = (pumpState.password.isNotEmpty) ? pumpState.password : '000000';
+    if (_pin == correctPassword) {
       await Future.delayed(const Duration(milliseconds: 300));
       if (mounted) {
         Navigator.of(context).pushReplacement(

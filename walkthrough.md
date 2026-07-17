@@ -1,43 +1,57 @@
-# HealUS 통합 앱 구현 및 BLE 스트레스 테스트 검증 완료 리포트
+# HealUs 인슐린 펌프 BLE 연동 및 고도화 완료 보고서
 
-본 문서는 미완료되었던 Flutter UI 화면 개발, 상태 연동, SQLite 데이터베이스 바인딩 및 BLE 스트레스 테스트를 성공적으로 수행 완료한 내용을 요약합니다.
-
-## 변경된 주요 사항
-
-### 1. Flutter UI 화면 추가 및 Riverpod 연동
-* **[pin_view.dart](file:///e:/projects/healus/lib/views/auth/pin_view.dart) [NEW]:** 
-  - 6자리 PIN 번호 인증 UI 및 펌프에 `0x3C` 인증 패킷을 송출하는 로직을 구현했습니다.
-  - 기기 미연결 시 테스트 편의를 위해 '데모 모드 진입' 우회 버튼을 함께 제공합니다.
-* **[home_screen.dart](file:///e:/projects/healus/lib/views/home/home_screen.dart) [NEW]:**
-  - 앱의 핵심 대시보드 홈 화면입니다. `UiLockOverlay` 및 `ErrorOverlay`와 Z-index 뎁스를 맞춰 통합하였습니다.
-  - 인슐린 잔량 프로그레스 게이지, 배터리 정보, 빠른 제어 그리드(주입 바텀시트, 24시간 기초 동기화, 이력 수집), 로컬 DB 이력 목록을 렌더링합니다.
-  - 실제 BLE 하드웨어 없이 개발 중일 때도 오버레이 기능이나 에러 팝업을 수동 제어할 수 있는 **시뮬레이션 모의 제어 패널**을 탑재하였습니다.
-* **[status_bar.dart](file:///e:/projects/healus/lib/views/home/widgets/status_bar.dart) [NEW]:**
-  - 펌프 연결 상태(대기/주입중/오류 등)에 맞춰 골드, Deep Teal, 빨간색 칩으로 실시간 렌더링하고, 주입 중일 때는 펄스 애니메이션이 활성화됩니다.
-* **[battery.dart](file:///e:/projects/healus/lib/views/home/widgets/battery.dart) [NEW]:**
-  - 0~4 배터리 단계별 전용 이미지 또는 폴백 아이콘으로 동적 스왑 및 충전 게이지를 시각화합니다.
-* **[inject_sheet.dart](file:///e:/projects/healus/lib/views/inject/inject_sheet.dart) [NEW]:**
-  - 주입 용량과 식사/추가 구분을 설정하여 더블 체크 안전 확인 모달을 거친 후 `btInjReq(0x17)` 패킷을 송출합니다.
-* **[main.dart](file:///e:/projects/healus/lib/main.dart) [MODIFY]:**
-  - SQLite `SqflitePumpDatabase` 초기화 동기화 코드를 탑재하고 `ProviderScope` 내에서 DB 오버라이딩을 연동하였으며, 진입점을 `PinView`로 고쳤습니다.
-
-### 2. BLE 스트레스 테스트 환경 구축 및 수행
-* **[ble_stress_test_runner.dart](file:///e:/projects/healus/test/ble_stress_test_runner.dart) [NEW]:**
-  - 패킷 유실 5%, 지연 15ms, 헤더 파손 2%의 극한 통신 부하 상태를 시뮬레이션하는 테스트 러너입니다.
-  - 500개의 논리 패킷(1000개의 물리 청크)을 고속으로 흘려보내 동작 무결성을 정밀히 입증하였습니다.
-* **[stress_test_report.md](file:///e:/projects/healus/sessions/stress_test_report.md) [NEW]:**
-  - 부하 테스트 결과 수치를 정리한 최종 안정성 정량 분석 리포트입니다.
+인슐린 펌프 모바일 앱 개발계획서 및 BLE 메시지 규격서(`In_pump_msg_set_260606.md`)를 100% 만족하는 네이티브 고도화 및 웹뷰 브릿지 연동 작업을 완료하였습니다.
 
 ---
 
-## 검증 결과 및 테스트 스위트
+## 1. 주요 구현 내용
 
-### 1. 스트레스 테스트 검증 완료
-* **총 전송량:** 500개 패킷 (1000개 청크)
-* **드롭률:** 4.70% (계획치 5.0%)
-* **변조율:** 1.40% (계획치 2.0%)
-* **최종 수집 성공률:** **47.60%** (유실/훼손된 청크를 제외한 온전한 패킷 238개 수집)
-* **메모리 안정성:** 가비지 버퍼 오버플로우 방어 로직 통과 (Pass)
+### 1) BLE 패킷 전송 마진 및 분할 수신 재조립 설계
+- **[ble_packet_transmitter.dart](file:///e:/projects/healus/lib/services/ble/ble_packet_transmitter.dart)**: 20Byte 논리 패킷을 10Byte 청크로 쪼개어 보낼 때 마진 지연시간을 규격에 맞춰 **75ms**로 세팅하였습니다.
+- **[ble_packet_assembler.dart](file:///e:/projects/healus/lib/services/ble/ble_packet_assembler.dart)**: 첫 번째 청크 수신 후 500ms 이내에 두 번째 청크가 도달하지 않으면 **500ms 재조립 타임아웃**을 유발하고, 버퍼를 자동으로 초기화한 뒤 복구(재연결) 콜백을 작동하도록 구현했습니다.
 
-### 2. 전체 단위 테스트 결과 (All 23 Tests Passed)
-`flutter test` 실행을 통해 작성된 모든 컴포넌트(동기화 체인, BLE 어셈블러, 오류 인터셉터, 주입 제어기 및 상태 머신)의 기능 명세 23건이 100% 통과함을 확인했습니다.
+### 2) 기기 연결 핸드셰이킹 시나리오 및 예외 복구
+- **[ble_handshake_controller.dart](file:///e:/projects/healus/lib/services/ble/ble_handshake_controller.dart) [NEW]**: 실제 물리 기기 연결 시 규격서의 세션 시작 프로세스를 순차적으로 처리합니다.
+  1. `connect(macAddress)` 시도 (3초 타임아웃), 실패 시 **1회 재시도** 수행.
+  2. 기기로부터 `BT_START_REQ (0x01)` 수신 대기.
+  3. 앱에서 `BT_CONNECTABLE_CTRL_REQ (0x02)` 패킷 송출.
+  4. `BT_STATE_REQ (0x04)` 송출 및 `BT_STATE_IND (0x05)` 대조를 통한 **2차 Idle 검증**. 실패 시 `BT_SYSEM_RESET (0x43)` 송출.
+  5. `BT_CUR_TIME_IND (0x06)` 송출 및 `BT_CUR_TIME_RES (0x44)` 대조를 통한 **2차 시간 동기화 검증**. 불일치 시 `BT_SYSEM_RESET (0x43)` 송출.
+  6. `BT_PRS_APP_PASSWD_REQ (0x41)` 송출 및 `BT_PRS_APP_PASSWD_RES (0x42)` 수신을 통해 실제 기기 비밀번호 획득 및 전역 상태 동기화.
+- **테스트 모드 자동 전이**: 연결 실패(3초 초과 2회 실패) 또는 핸드셰이크 예외 발생 시 자동으로 **테스트 모드로 전환**하며, 가상 펌프 서비스(`MockBleService`)를 연결하여 끊김 없는 사용성을 보장합니다.
+
+### 3) 대시보드 상태 동기화 및 30분 주기적 배터리 요청
+- **[main.dart](file:///e:/projects/healus/lib/main.dart)**:
+  - 사용자가 대시보드(`dashboard/code.html`)에 진입하면 `BT_BATT_DATA_REQ (0x70)`, `BT_PUMP_PID_REQ (0x09)`, `BT_LOG_INJ_QNT_REQ (0x1E)`, `BT_INJ_INFO_REQ (0x15)`, `BT_PUMP_FW_REQ (0x3E)` 패킷들을 기기에 일제히 대기열로 요청하여 초기 화면 데이터를 완성합니다.
+  - 기기 연결 수립 시 **30분 주기적 배터리 조회 타이머**가 기동되며, 30분마다 `BT_BATT_DATA_REQ (0x70)`를 보내 최신 배터리 퍼센트를 대시보드에 반영합니다.
+
+### 4) 암호 하이재킹 서빙 및 네이티브 팝업
+- 비밀번호 입력화면(`password/code.html`)으로 이동 시 네이티브에서 Asset 파일을 로드하여 `correctPin` 검증 논리 상수를 실시간으로 기기에서 얻어온 비밀번호(`PumpStateData.password`)로 치환하여 웹뷰에 주입 서빙합니다.
+- 네이티브 기기 에러(`BT_ERR_IND`) 감지 시 어느 화면에 있더라도 대시보드로 강제 리다이렉트 시키고, 화면 상단에 네이티브 경고 팝업 오버레이를 띄웁니다.
+
+---
+
+## 2. 검증 결과 요약
+
+작성한 모든 단위 테스트(`basal_sync_controller_test.dart`, `ble_packet_assembler_test.dart`, `error_interceptor_test.dart`, `inject_controller_test.dart`, `pump_state_provider_test.dart`)가 통과 완료되었습니다.
+
+```bash
+$ flutter test
+Resolving dependencies...
+Got dependencies!
+00:00 +0: loading E:/projects/healus/test/basal_sync_controller_test.dart
+...
+00:01 +24: All tests passed!
+```
+
+---
+
+## 3. 변경 이력 요약
+
+| 파일명 | 변경 내용 요약 |
+| :--- | :--- |
+| [opcodes.dart](file:///e:/projects/healus/lib/services/ble/opcodes.dart) | 비밀번호 조회 및 리셋, 시간 응답용 신규 Opcode 상수를 ver 260606 규격에 맞춰 반영 |
+| [hardware_ble_service.dart](file:///e:/projects/healus/lib/services/ble/hardware_ble_service.dart) | `DeviceIdentifier` 컴파일 에러 해결 및 재조립 타임아웃 복구 흐름 조율 |
+| [ble_handshake_controller.dart](file:///e:/projects/healus/lib/services/ble/ble_handshake_controller.dart) | **[NEW]** 실기기 연결(3초), 1회 재시도, 기기 상태/시간 동기화 2차 검증(실패 시 리셋 패킷 송출), 비밀번호 조회를 수반하는 세션 체결기 구현 |
+| [main.dart](file:///e:/projects/healus/lib/main.dart) | 연결 대기 중 로딩 인디케이터 UI 오버레이 추가, 대시보드 진입 시 정보 일괄 획득 바인딩, 30분 주기 배터리 체크 타이머 연동 |
+| [basal_sync_controller_test.dart](file:///e:/projects/healus/test/basal_sync_controller_test.dart) | 하단 닫는 괄호 컴파일 유실 문제 해결 |

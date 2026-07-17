@@ -78,9 +78,9 @@
     }
   </style>
 </head>
-<body class="w-full h-screen flex flex-col justify-between overflow-hidden relative max-w-[390px] mx-auto bg-white shadow-xl pt-[48px]" style="height: 884px; max-height: 884px;">
+<body class="w-full h-screen flex flex-col justify-between overflow-hidden relative max-w-[390px] mx-auto bg-white shadow-xl">
 <!-- BEGIN: MainContent -->
-<main class="flex-1 pb-[80px] bg-gray-bg overflow-hidden relative">
+<main class="flex-1 pb-[20px] bg-gray-bg overflow-hidden relative">
 <!-- BEGIN: TopBar -->
 <header class="flex justify-between items-center px-5 bg-white sticky top-0 z-10 py-2">
 <div class="flex items-center gap-2 text-teal font-bold text-xl">
@@ -106,12 +106,12 @@
 <h2 class="text-gray-text text-sm">오늘의 요약</h2>
 <span class="hidden bg-blue-100 text-blue-600 text-[10px] font-bold px-2 py-0.5 rounded-full" id="badge-injecting">주입 중</span>
 </div>
-<div class="flex gap-4">
+<div class="flex gap-3">
 <!-- Basal -->
 <div>
 <div class="flex items-end gap-1">
-<span class="text-2xl font-semibold text-gray-800" id="val-basal">0.0</span>
-<span class="text-sm text-gray-500 mb-1">U</span>
+<span class="text-lg font-semibold text-gray-800 tracking-tighter" id="val-basal">---</span>
+<span class="text-xs text-gray-500 mb-1">U</span>
 </div>
 <p class="text-xs text-gray-500 mt-1">기초주입</p>
 </div>
@@ -119,8 +119,8 @@
 <!-- Meal -->
 <div>
 <div class="flex items-end gap-1">
-<span class="text-2xl font-semibold text-gray-800" id="val-meal">0.0</span>
-<span class="text-sm text-gray-500 mb-1">U</span>
+<span class="text-lg font-semibold text-gray-800 tracking-tighter" id="val-meal">---</span>
+<span class="text-xs text-gray-500 mb-1">U</span>
 </div>
 <p class="text-xs text-gray-500 mt-1">식사주입</p>
 </div>
@@ -128,8 +128,8 @@
 <!-- Extra -->
 <div>
 <div class="flex items-end gap-1">
-<span class="text-2xl font-semibold text-gray-800" id="val-add">0.0</span>
-<span class="text-sm text-gray-500 mb-1">U</span>
+<span class="text-lg font-semibold text-gray-800 tracking-tighter" id="val-add">---</span>
+<span class="text-xs text-gray-500 mb-1">U</span>
 </div>
 <p class="text-xs text-gray-500 mt-1">추가주입</p>
 </div>
@@ -147,10 +147,10 @@
 <span class="material-icons text-base">battery_std</span>
               펌프 배터리
             </div>
-<span class="text-sm font-bold text-teal" id="val-battery-pct">50%</span>
+<span class="text-sm font-bold text-teal" id="val-battery-pct">---</span>
 </div>
 <div class="h-2 w-full progress-bar-bg rounded-full overflow-hidden">
-<div class="h-full progress-bar-fill rounded-full" id="bar-battery" style="width: 50%;"></div>
+<div class="h-full progress-bar-fill rounded-full" id="bar-battery" style="width: 0%;"></div>
 </div>
 </div>
 <!-- Insulin Status -->
@@ -160,10 +160,10 @@
 <span class="material-icons text-base">water_drop</span>
               인슐린 잔량
             </div>
-<span class="text-sm font-bold text-teal" id="val-insulin">70 / 300 U</span>
+<span class="text-sm font-bold text-teal" id="val-insulin">--- / 300 U</span>
 </div>
 <div class="h-2 w-full progress-bar-bg rounded-full overflow-hidden">
-<div class="h-full progress-bar-fill rounded-full" id="bar-insulin" style="width: 23.3333%;"></div>
+<div class="h-full progress-bar-fill rounded-full" id="bar-insulin" style="width: 0%;"></div>
 </div>
 </div>
 </section>
@@ -260,11 +260,11 @@
 <div class="py-10 px-6 text-center w-full">
 <h2 class="text-xl font-bold text-gray-900">주입 요청을 하였습니다</h2>
 </div>
-<div class="flex gap-3 px-6 w-full">
-<button class="flex-1 border border-gray-200 text-gray-800 font-medium rounded-full py-2 px-4" id="btn-request-close">
+<div class="flex justify-center w-full">
+<button class="hidden" id="btn-request-close" style="display: none;">
         닫기
       </button>
-<button class="flex-1 bg-teal text-white font-medium rounded-full py-2 px-4" id="btn-request-ok">
+<button class="bg-teal text-white font-medium rounded-full py-2 px-10 min-w-[120px]" id="btn-request-ok">
         OK
       </button>
 </div>
@@ -285,7 +285,7 @@
 <script data-purpose="dashboard-logic">
     // 최종 빌드 시 false로 설정하여 시뮬레이션 타이머를 비활성화할 수 있습니다.
     const CONFIG_USE_TIMER = true;
-    localStorage.removeItem('CONFIG_USE_TIMER');
+    // localStorage.removeItem('CONFIG_USE_TIMER');
 
     const ACTION_SCREEN_PATHS = {
       meal: '../meal_injection/code.html',
@@ -321,6 +321,7 @@
     }
 
     window.showAppToast = showToast;
+    window.showToast = showToast;
 
     function navigateToAction(actionKey) {
       if (localStorage.getItem('isInjecting') === 'true') {
@@ -442,21 +443,9 @@
     }
 
     function handleRequestAccept() {
-      if (!globalState.pendingAction) {
-        closeAllModals();
-        resetDashboardUrl();
-        return;
-      }
-
-      console.log(buildCommandText(globalState.pendingAction, globalState.pendingPayload));
-      globalState.isInjecting = true;
-      localStorage.setItem('isInjecting', 'true');
-      localStorage.setItem('injectingEndTime', (Date.now() + 5000).toString());
-      updateInjectingBadge();
       clearPendingRequest();
       closeAllModals();
       resetDashboardUrl();
-      scheduleCompletionSimulation();
     }
 
     function handleRequestClose() {
@@ -503,13 +492,16 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+      const rawBattery = localStorage.getItem('batteryLevel');
+      const rawInsulin = localStorage.getItem('insulinRemaining');
+
       const state = {
         dashboardData: {
-          basal: '0.0',
-          meal: '0.0',
-          add: '0.0',
-          battery: 50,
-          insulinCurrent: 70,
+          basal: localStorage.getItem('basalSum') || '---',
+          meal: localStorage.getItem('mealSum') || '---',
+          add: localStorage.getItem('appendSum') || '---',
+          battery: (rawBattery === null || rawBattery === '---') ? '---' : parseInt(rawBattery, 10) * 25,
+          insulinCurrent: (rawInsulin === null || rawInsulin === '---') ? '---' : parseFloat(rawInsulin),
           insulinMax: 300
         },
         isBluetoothConnected: true
@@ -538,12 +530,23 @@
         els.valBasal.textContent = dashboardData.basal;
         els.valMeal.textContent = dashboardData.meal;
         els.valAdd.textContent = dashboardData.add;
-        els.valBatteryPct.textContent = `${dashboardData.battery}%`;
-        els.valInsulin.textContent = `${dashboardData.insulinCurrent} / ${dashboardData.insulinMax} U`;
 
-        els.barBattery.style.width = `${dashboardData.battery}%`;
-        const insulinPct = (dashboardData.insulinCurrent / dashboardData.insulinMax) * 100;
-        els.barInsulin.style.width = `${Math.min(100, Math.max(0, insulinPct))}%`;
+        if (dashboardData.battery === '---') {
+          els.valBatteryPct.textContent = '---';
+          els.barBattery.style.width = '0%';
+        } else {
+          els.valBatteryPct.textContent = `${dashboardData.battery}%`;
+          els.barBattery.style.width = `${dashboardData.battery}%`;
+        }
+
+        if (dashboardData.insulinCurrent === '---') {
+          els.valInsulin.textContent = '--- / 300 U';
+          els.barInsulin.style.width = '0%';
+        } else {
+          els.valInsulin.textContent = `${dashboardData.insulinCurrent} / ${dashboardData.insulinMax} U`;
+          const insulinPct = (dashboardData.insulinCurrent / dashboardData.insulinMax) * 100;
+          els.barInsulin.style.width = `${Math.min(100, Math.max(0, insulinPct))}%`;
+        }
 
         els.btnBluetooth.style.display = isBluetoothConnected ? 'block' : 'none';
       }

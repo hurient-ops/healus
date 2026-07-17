@@ -104,7 +104,7 @@
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <script crossorigin="" src="https://unpkg.com/react@18/umd/react.development.js"></script>
 <script crossorigin="" src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.22.20/babel.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
 <script>
     tailwind.config = {
@@ -185,13 +185,13 @@
       scrollbar-width: none;
     }
   </style>
-<body class="bg-surface flex justify-center items-center min-h-screen">
-<div id="root"></div>
+<body class="bg-surface flex justify-center items-center h-screen overflow-hidden">
+<div id="root" class="w-full h-full max-w-[390px] shadow-2xl relative overflow-hidden bg-white"></div>
 <script type="text/babel">
   const { useState } = React;
 
   function SettingsScreen() {
-    const [isPaused, setIsPaused] = useState(false);
+    const [isPaused, setIsPaused] = useState(() => localStorage.getItem('isPaused') === 'true');
     const [activeModal, setActiveModal] = useState(null);
 
     const sendBLECommand = (command) => {
@@ -221,8 +221,8 @@
     };
 
     return (
-      <div className="w-[390px] h-[884px] max-w-[390px] max-h-[884px] bg-surface-container-lowest relative overflow-hidden shadow-2xl flex flex-col">
-        <div className="h-12 bg-surface-container-lowest w-full shrink-0 z-10"></div>
+      <div className="w-full h-full bg-surface-container-lowest flex flex-col">
+        <div className="h-2 bg-surface-container-lowest w-full shrink-0 z-10"></div>
 
         <header className="h-14 bg-surface-container-lowest flex items-center justify-between px-4 border-b border-outline-variant shrink-0">
           <div className="w-8"></div>
@@ -240,20 +240,20 @@
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto no-scrollbar bg-surface-container-lowest pb-20">
+        <main className="flex-1 overflow-y-auto no-scrollbar bg-surface-container-lowest pb-[64px]">
           <section>
-            <div className="bg-surface-container-low px-4 py-2 border-b border-outline-variant">
-              <h2 className="text-sm font-semibold text-on-surface-variant">기초</h2>
+            <div className="bg-surface-container-low px-4 py-1.5 border-b border-outline-variant">
+              <h2 className="text-[13px] font-semibold text-on-surface-variant">기초</h2>
             </div>
             <ul className="flex flex-col">
               <li className="border-b border-outline-variant">
-                <a href="../basal_setting/code.html" className="block w-full text-left px-4 py-4 text-base font-medium text-on-surface hover:bg-surface-container active:bg-surface-container-high transition-colors cursor-pointer">
+                <a href="../basal_setting/code.html" className="block w-full text-left px-4 py-3 text-[14px] font-medium text-on-surface hover:bg-surface-container active:bg-surface-container-high transition-colors cursor-pointer">
                   기초 설정
                 </a>
               </li>
               <li className="border-b border-outline-variant">
                 <button
-                  className="w-full text-left px-4 py-4 text-base font-medium text-on-surface hover:bg-surface-container active:bg-surface-container-high transition-colors"
+                  className="w-full text-left px-4 py-3 text-[14px] font-medium text-on-surface hover:bg-surface-container active:bg-surface-container-high transition-colors"
                   onClick={() => setActiveModal(isPaused ? 'resume' : 'pause')}
                 >
                   {isPaused ? '장치 재개' : '일시 정지'}
@@ -263,12 +263,12 @@
           </section>
 
           <section>
-            <div className="bg-surface-container-low px-4 py-2 border-b border-outline-variant mt-2">
-              <h2 className="text-sm font-semibold text-on-surface-variant">식사</h2>
+            <div className="bg-surface-container-low px-4 py-1.5 border-b border-outline-variant mt-1">
+              <h2 className="text-[13px] font-semibold text-on-surface-variant">식사</h2>
             </div>
             <ul className="flex flex-col">
               <li className="border-b border-outline-variant">
-                <a href="../meal_setting/code.html" className="block w-full text-left px-4 py-4 text-base font-medium text-on-surface hover:bg-surface-container active:bg-surface-container-high transition-colors cursor-pointer">
+                <a href="../meal_setting/code.html" className="block w-full text-left px-4 py-3 text-[14px] font-medium text-on-surface hover:bg-surface-container active:bg-surface-container-high transition-colors cursor-pointer">
                   식사 설정
                 </a>
               </li>
@@ -276,14 +276,14 @@
           </section>
 
           <section>
-            <div className="bg-surface-container-low px-4 py-2 border-b border-outline-variant mt-2 flex justify-between items-center">
-              <h2 className="text-sm font-semibold text-on-surface-variant">장치</h2>
-              <span className="text-xs text-on-surface-variant">연결 상태 : HealUs</span>
+            <div className="bg-surface-container-low px-4 py-1.5 border-b border-outline-variant mt-1 flex justify-between items-center">
+              <h2 className="text-[13px] font-semibold text-on-surface-variant">장치</h2>
+              <span className="text-[11px] text-on-surface-variant">연결 상태 : HealUs</span>
             </div>
             <ul className="flex flex-col">
               <li className="border-b border-outline-variant">
                 <button
-                  className="w-full text-left px-4 py-4 text-base font-medium text-on-surface hover:bg-surface-container active:bg-surface-container-high transition-colors"
+                  className="w-full text-left px-4 py-3 text-[14px] font-medium text-on-surface hover:bg-surface-container active:bg-surface-container-high transition-colors"
                   onClick={() => setActiveModal('disconnect')}
                 >
                   장치 연결 해제
@@ -291,7 +291,7 @@
               </li>
               <li className="border-b border-outline-variant">
                 <button
-                  className="w-full text-left px-4 py-4 text-base font-medium text-on-surface hover:bg-surface-container active:bg-surface-container-high transition-colors"
+                  className="w-full text-left px-4 py-3 text-[14px] font-medium text-on-surface hover:bg-surface-container active:bg-surface-container-high transition-colors"
                   onClick={() => setActiveModal('reset')}
                 >
                   장치 초기화
@@ -301,31 +301,31 @@
           </section>
 
           <section>
-            <div className="bg-surface-container-low px-4 py-2 border-b border-outline-variant mt-2">
-              <h2 className="text-sm font-semibold text-on-surface-variant">앱</h2>
+            <div className="bg-surface-container-low px-4 py-1.5 border-b border-outline-variant mt-1">
+              <h2 className="text-[13px] font-semibold text-on-surface-variant">앱</h2>
             </div>
             <ul className="flex flex-col">
               <li className="border-b border-outline-variant">
-                <a href="../language_setting/code.html" className="block w-full text-left px-4 py-4 text-base font-medium text-on-surface hover:bg-surface-container active:bg-surface-container-high transition-colors cursor-pointer">
+                <a href="../language_setting/code.html" className="block w-full text-left px-4 py-3 text-[14px] font-medium text-on-surface hover:bg-surface-container active:bg-surface-container-high transition-colors cursor-pointer">
                   언어
                 </a>
               </li>
             </ul>
           </section>
 
-          <div className="px-4 py-4">
-            <div className="w-full overflow-hidden rounded-lg aspect-[1376/580]">
+          <div className="px-4 py-3 flex-1 flex flex-col justify-end">
+            <div className="w-full overflow-hidden rounded-lg aspect-[1376/580] max-h-[80px]">
               <img
                 alt="Device Image"
                 className="w-full h-full object-cover"
                 src="./images/main_setting.png"
-                style={{ imageRendering: '-webkit-optimize-contrast', objectFit: 'cover' }}
+                style={{ imageRendering: '-webkit-optimize-contrast', objectFit: 'cover', objectPosition: 'center' }}
               />
             </div>
           </div>
         </main>
 
-        <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-[390px] bg-surface-container-lowest border-t border-outline-variant h-16 flex items-center justify-around px-4 z-50">
+        <nav className="absolute bottom-0 left-0 w-full bg-surface-container-lowest border-t border-outline-variant h-[60px] flex items-center justify-around px-4 z-50">
           <a
             className="flex flex-col items-center gap-1 text-on-surface-variant hover:text-primary transition-colors cursor-pointer decoration-none"
             onClick={() => {

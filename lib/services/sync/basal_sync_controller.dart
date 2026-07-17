@@ -19,11 +19,15 @@ class BasalSyncState {
   /// DB에 영구 저장된 이력 데이터 리스트 (차트 갱신용)
   final List<PumpLogModel> logs;
 
+  /// 실제 패킷을 통해 로그 데이터(이력)가 성공적으로 동기화되었는지 여부
+  final bool hasReceivedRealLogs;
+
   BasalSyncState({
     this.isSyncingBasal = false,
     this.basalSyncProgress = 0.0,
     this.isSyncingLogs = false,
     this.logs = const [],
+    this.hasReceivedRealLogs = false,
   });
 
   BasalSyncState copyWith({
@@ -31,12 +35,14 @@ class BasalSyncState {
     double? basalSyncProgress,
     bool? isSyncingLogs,
     List<PumpLogModel>? logs,
+    bool? hasReceivedRealLogs,
   }) {
     return BasalSyncState(
       isSyncingBasal: isSyncingBasal ?? this.isSyncingBasal,
       basalSyncProgress: basalSyncProgress ?? this.basalSyncProgress,
       isSyncingLogs: isSyncingLogs ?? this.isSyncingLogs,
       logs: logs ?? this.logs,
+      hasReceivedRealLogs: hasReceivedRealLogs ?? this.hasReceivedRealLogs,
     );
   }
 }
@@ -51,7 +57,6 @@ class BasalSyncController extends StateNotifier<BasalSyncState> {
   final Ref _ref;
   final PumpDatabase _db;
 
-  Completer<ResCode>? _basalAckCompleter;
   final List<PumpLogModel> _tempLogs = [];
 
   BasalSyncController(this._ref, this._db) : super(BasalSyncState());
@@ -68,8 +73,6 @@ class BasalSyncController extends StateNotifier<BasalSyncState> {
 
     try {
       for (int group = 1; group <= 6; group++) {
-        _basalAckCompleter = Completer<ResCode>();
-
         // 1. 패킷 구성
         final packet = List<int>.filled(20, 0);
         packet[0] = kStartCode;
@@ -85,42 +88,26 @@ class BasalSyncController extends StateNotifier<BasalSyncState> {
           PacketParser.writeUint16(packet, 4 + (i * 2), scaledVal);
         }
 
-        // 2. 패킷 전송 큐 인입
+        // 2. 패킷 전송 큐 인입 (InjectController가 BleMutex로 1:1 전송 보장)
         _ref.read(injectControllerProvider.notifier).queuePacket(packet);
 
-        // 3. 기기로부터 Ack (BT_SET_RES 등) 수신 대기 (최대 5초 타임아웃 방어)
-        final resCode = await _basalAckCompleter!.future.timeout(
-          const Duration(seconds: 5),
-          onTimeout: () {
-            throw TimeoutException("기기 응답 제한 시간(5초)을 초과하였습니다.");
-          },
-        );
-
-        if (resCode != ResCode.ok) {
-          state = state.copyWith(isSyncingBasal: false);
-          return false;
-        }
-
-        // 진행률 업데이트
+        // 진행률 업데이트 (큐 적재 기준이므로 사실상 거의 즉시 1.0 도달, 실제 처리는 백그라운드 큐가 담당)
         state = state.copyWith(basalSyncProgress: group / 6.0);
       }
 
       state = state.copyWith(isSyncingBasal: false, basalSyncProgress: 1.0);
       return true;
     } catch (e) {
-      print("기초 주입량 동기화 체인 진행 실패: $e");
+      print("기초 주입량 동기화 큐 적재 실패: $e");
       state = state.copyWith(isSyncingBasal: false);
       return false;
-    } finally {
-      _basalAckCompleter = null;
     }
   }
 
   /// 펌프로부터 설정 완료 응답(Ack)을 수신했을 때 호출되어 동기화 체인의 잠금을 해제합니다.
+  /// (더 이상 사용되지 않지만 기존 호환성을 위해 빈 함수로 남겨둠)
   void handleSetResponse(ResCode resCode) {
-    if (_basalAckCompleter != null && !_basalAckCompleter!.isCompleted) {
-      _basalAckCompleter!.complete(resCode);
-    }
+    // BleMutex 도입으로 인해 개별 컨트롤러에서 대기할 필요 없음.
   }
 
   /// 이력 데이터 요청 (BT_LOG_REQ, 0x1D)
@@ -134,8 +121,42 @@ class BasalSyncController extends StateNotifier<BasalSyncState> {
   }
 
   /// BLE 패킷 리스너로부터 들어오는 대량 패킷(이력 데이터 등) 수집 처리 파이프라인
-  Future<void> handleIncomingPacket(List<int> packet) async {
-    if (packet.length != 20 || packet[0] != kStartCode) {
+  Future<void> handleIncomingPacket(List<int> packet, {bool isRealPacket = false}) async {
+    if (packet.length != 20) {
+      return;
+    }
+
+    // 이력 데이터 동기화 모드이고, 대량 패킷 수집 중일 때는 시작 코드 검사를 건너뜀 (문서상 헤더가 없음)
+    if (state.isSyncingLogs && packet[0] != kStartCode) {
+      // 0번째부터 데이터 파싱
+      final int month = packet[0];
+      final int day = packet[1];
+      final double base = PacketParser.readUint16(packet, 2) / 100.0;
+      final double eat = PacketParser.readUint16(packet, 4) / 100.0;
+      final double morning = PacketParser.readUint16(packet, 6) / 100.0;
+      final double afternoon = PacketParser.readUint16(packet, 8) / 100.0;
+      final double evening = PacketParser.readUint16(packet, 10) / 100.0;
+      final double append = PacketParser.readUint16(packet, 12) / 100.0;
+
+      final log = PumpLogModel(
+        month: month,
+        day: day,
+        baseTotal: base,
+        eatTotal: eat,
+        morningTotal: morning,
+        afternoonTotal: afternoon,
+        eveningTotal: evening,
+        appendTotal: append,
+        createdAt: DateTime.now().toIso8601String(),
+      );
+
+      print("[DEBUG] basal_sync_controller: collected log for month=$month, day=$day");
+      _tempLogs.add(log);
+      return;
+    }
+
+    // 일반 패킷(헤더 존재)
+    if (packet[0] != kStartCode) {
       return;
     }
 
@@ -143,27 +164,76 @@ class BasalSyncController extends StateNotifier<BasalSyncState> {
     final int dataLen = packet[2];
 
     switch (opCode) {
+      case Opcodes.btLogInjQntInd:
+        if (dataLen >= 13) {
+          final double base = PacketParser.readUint16(packet, 6) / 100.0;
+          final double morning = PacketParser.readUint16(packet, 8) / 100.0;
+          final double lunch = PacketParser.readUint16(packet, 10) / 100.0;
+          final double evening = PacketParser.readUint16(packet, 12) / 100.0;
+          final double append = PacketParser.readUint16(packet, 14) / 100.0;
+          
+          if (state.hasReceivedRealLogs && !isRealPacket) {
+            print("[DEBUG] basal_sync_controller: hasReceivedRealLogs is true. Ignoring mock summary log packet.");
+            break;
+          }
+
+          final now = DateTime.now();
+          final log = PumpLogModel(
+            month: now.month,
+            day: now.day,
+            baseTotal: base,
+            eatTotal: morning + lunch + evening,
+            morningTotal: morning,
+            afternoonTotal: lunch,
+            eveningTotal: evening,
+            appendTotal: append,
+            createdAt: now.toIso8601String(),
+          );
+          
+          print("[DEBUG] basal_sync_controller: btLogInjQntInd received. Saving today's summary to DB.");
+          await _db.insertLog(log);
+          await _db.keepOnlyLast180Days();
+          await reloadLogsFromDb();
+
+          if (isRealPacket) {
+            state = state.copyWith(hasReceivedRealLogs: true);
+          }
+        }
+        break;
+
       case Opcodes.btDataStartInd:
+        print("[DEBUG] basal_sync_controller: btDataStartInd received");
+        
+        if (state.hasReceivedRealLogs && !isRealPacket) {
+          print("[DEBUG] basal_sync_controller: hasReceivedRealLogs is true. Ignoring mock log start packet.");
+          break;
+        }
+
         // 이력 대량 전송 시작 알림 수신
         _tempLogs.clear();
-        state = state.copyWith(isSyncingLogs: true);
+        state = state.copyWith(
+          isSyncingLogs: true,
+          hasReceivedRealLogs: isRealPacket ? true : state.hasReceivedRealLogs,
+        );
         break;
 
       case Opcodes.btDataEndInd:
+        print("[DEBUG] basal_sync_controller: btDataEndInd received, isSyncingLogs=${state.isSyncingLogs}, tempLogsCount=${_tempLogs.length}");
         // 이력 대량 전송 종료 알림 수신 -> 로컬 DB에 벌크 인서트 후 화면 데이터 로드
         if (state.isSyncingLogs) {
           await _db.insertLogsBulk(_tempLogs);
+          await _db.keepOnlyLast180Days();
+          print("[DEBUG] basal_sync_controller: insertLogsBulk completed");
           _tempLogs.clear();
-          final allLogs = await _db.getAllLogs();
+          await reloadLogsFromDb();
           state = state.copyWith(
             isSyncingLogs: false,
-            logs: allLogs,
           );
         }
         break;
 
       default:
-        // 이력 데이터 수집 모드인 경우 14Byte 이력 응답 데이터 파싱
+        // 이력 데이터 수집 모드인 경우 14Byte 이력 응답 데이터 파싱 (헤더 존재 시 하위호환)
         if (state.isSyncingLogs && dataLen == 14) {
           final int month = packet[3];
           final int day = packet[4];
@@ -197,7 +267,33 @@ class BasalSyncController extends StateNotifier<BasalSyncState> {
   /// DB로부터 이력 데이터 리스트를 강제로 다시 로드
   Future<void> reloadLogsFromDb() async {
     final allLogs = await _db.getAllLogs();
-    state = state.copyWith(logs: allLogs);
+    
+    // 오늘 기준 최근 180일간의 날짜 리스트를 생성하고 빈 날짜는 0으로 채움
+    final List<PumpLogModel> filledLogs = [];
+    final now = DateTime.now();
+    for (int i = 179; i >= 0; i--) {
+      final targetDate = now.subtract(Duration(days: i));
+      final m = targetDate.month;
+      final d = targetDate.day;
+
+      final match = allLogs.firstWhere(
+        (log) => log.month == m && log.day == d,
+        orElse: () => PumpLogModel(
+          month: m,
+          day: d,
+          baseTotal: 0.0,
+          eatTotal: 0.0,
+          morningTotal: 0.0,
+          afternoonTotal: 0.0,
+          eveningTotal: 0.0,
+          appendTotal: 0.0,
+          createdAt: targetDate.toIso8601String(),
+        ),
+      );
+      filledLogs.add(match);
+    }
+    
+    state = state.copyWith(logs: filledLogs);
   }
 }
 

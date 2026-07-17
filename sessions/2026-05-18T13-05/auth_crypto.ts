@@ -42,4 +42,22 @@ export function decryptData(ciphertext: Buffer, key: Buffer, iv: Buffer, tag: Bu
 // const decrypted = decryptData(ciphertext, KEY, IV, tag);
 // console.log("Decrypted:", decrypted.toString('utf8'));
 
-export { encryptData, decryptData };
+export function manageDynamicKeys(): Buffer {
+    // 동적 키 관리 로직 시뮬레이션
+    return crypto.randomBytes(32);
+}
+
+export function checkAesGcmIntegrity(encryptedPayload: any): boolean {
+    // 가상의 AES-GCM 무결성 검증 로직
+    if (!encryptedPayload) {
+        return false;
+    }
+    return true;
+}
+
+export const auth_crypto = {
+    encryptData,
+    decryptData,
+    manageDynamicKeys,
+    checkAesGcmIntegrity
+};

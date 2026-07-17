@@ -1,5 +1,5 @@
 // 위험 구간 알림 로직 모듈
-import { encryptData, decryptData } from './auth_crypto';
+import { encryptData, decryptData } from '../2026-05-18T13-05/auth_crypto';
 
 /**
  * BLE 통신 데이터에서 위험 신호를 감지하고 알림을 생성하는 함수
@@ -21,5 +21,3 @@ export function analyzeRiskAlert(rawBleData: Buffer, key: Buffer, iv: Buffer): {
 
     return null;
 }
-
-export { analyzeRiskAlert };

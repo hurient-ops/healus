@@ -102,7 +102,7 @@ void main() {
       mockWriter = MockBleWriter();
     });
 
-    test('20Byte 논리 패킷을 10Byte 단위로 쪼개어 30ms 간격을 두고 전송한다', () async {
+    test('20Byte 논리 패킷을 10Byte 단위로 쪼개어 75ms 간격을 두고 전송한다', () async {
       final logicalPacket = List<int>.generate(20, (i) => i);
       logicalPacket[0] = kStartCode; // 첫 바이트 0xEF로 설정
 
@@ -117,9 +117,9 @@ void main() {
       expect(mockWriter.writtenChunks[0], [0xEF, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
       expect(mockWriter.writtenChunks[1], [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
 
-      // 30ms 딜레이 블로킹 검증
+      // 75ms 딜레이 블로킹 검증
       final diff = mockWriter.writeTimes[1].difference(mockWriter.writeTimes[0]);
-      expect(diff.inMilliseconds >= 30, true);
+      expect(diff.inMilliseconds >= 75, true);
     });
 
     test('길이가 20바이트가 아니거나 0xEF로 시작하지 않는 패킷은 예외를 던진다', () async {
@@ -128,6 +128,37 @@ void main() {
 
       expect(() => transmitter.send20BytePacket(mockWriter, invalidLenPacket), throwsArgumentError);
       expect(() => transmitter.send20BytePacket(mockWriter, invalidStartPacket), throwsArgumentError);
+    });
+  });
+
+  group('BlePacketAssembler Reassembly Timeout Tests', () {
+    late BlePacketAssembler assembler;
+
+    setUp(() {
+      assembler = BlePacketAssembler();
+    });
+
+    tearDown(() {
+      assembler.dispose();
+    });
+
+    test('10바이트만 전송받은 뒤 500ms가 지나면 재조립 타임아웃이 발생하여 버퍼가 비워지고 콜백이 유발된다', () async {
+      bool isReconnectCalled = false;
+      assembler.onTimeoutReconnect = () {
+        isReconnectCalled = true;
+      };
+
+      final chunk = [kStartCode, 0x05, 0x01, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+      assembler.onChunkReceived(chunk);
+
+      expect(assembler.rxBuffer.length, 10);
+      expect(isReconnectCalled, false);
+
+      // 550ms 대기 (타임아웃 발생 유도)
+      await Future.delayed(const Duration(milliseconds: 550));
+
+      expect(assembler.rxBuffer.isEmpty, true);
+      expect(isReconnectCalled, true);
     });
   });
 

@@ -133,59 +133,40 @@
 <style data-purpose="layout-styles">
     body {
       background-color: #f8fafa;
-      -webkit-tap-highlight-color: transparent;
       margin: 0;
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      overflow: hidden;
-      padding: 12px 0;
       box-sizing: border-box;
     }
     .safe-area-bottom {
       padding-bottom: env(safe-area-inset-bottom);
     }
-    .app-container {
-      width: 390px;
-      max-width: calc(100vw - 32px);
-      height: 884px;
-      max-height: calc(100vh - 24px);
-      margin: 0 auto;
-      position: relative;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      border-radius: 24px;
-      background-color: #ffffff;
-      box-shadow: 0 0 20px rgba(0, 0, 0, 0.08);
-    }
+
   </style>
 </head>
-<body class="font-sans antialiased text-gray-800">
-<div class="app-container bg-white">
-  <header class="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100 shrink-0 h-[104px]">
-    <div class="flex items-center min-w-[40px]">
-      <a href="../infomation/code.html" aria-label="Go back" class="p-1 hover:bg-gray-100 rounded-full transition-colors">
-        <span class="material-symbols-outlined" style="font-size: 24px; color: #111827;">arrow_back</span>
-      </a>
-    </div>
-    <h1 class="text-lg font-bold text-gray-900 whitespace-nowrap">제품 정보</h1>
-    <div class="flex items-center gap-3 min-w-[40px] justify-end">
-      <button type="button" onclick="window.location.reload()" aria-label="Sync" class="p-1 hover:bg-gray-100 rounded-full transition-colors">
-        <span class="material-symbols-outlined" style="font-size: 24px; color: #1f6568;">sync</span>
-      </button>
-      <button aria-label="Bluetooth" class="p-1 hover:bg-gray-100 rounded-full transition-colors">
-        <span class="material-symbols-outlined" style="font-size: 24px; color: #1f6568;">bluetooth</span>
-      </button>
-    </div>
-  </header>
+<body class="bg-[#f8fafa] flex justify-center items-center h-screen overflow-hidden font-sans antialiased text-gray-800">
+<div class="w-full h-full max-w-[390px] bg-white relative overflow-hidden shadow-2xl flex flex-col">
+  <div class="h-2 w-full shrink-0 z-10 bg-white"></div>
+  <header class="flex items-center justify-between px-5 bg-white border-b border-gray-100 shrink-0 h-14 relative z-20">
+<div class="flex items-center w-[80px]">
+<a href="../infomation/code.html" aria-label="Go back" class="text-[#2A6062] focus:outline-none">
+<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;">arrow_back</span>
+</a>
+</div>
+<h1 class="text-[18px] font-bold text-gray-900 text-center flex-1 truncate px-2">제품 정보</h1>
+<div class="flex items-center gap-4 w-[80px] justify-end text-[#2A6062]">
+<button type="button" onclick="window.location.reload()" aria-label="Sync" class="focus:outline-none">
+<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;">sync</span>
+</button>
+<button aria-label="Bluetooth" class="focus:outline-none">
+<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;">bluetooth</span>
+</button>
+</div>
+</header>
 
-  <main class="flex-1 overflow-y-auto">
-    <div class="flex flex-col gap-6 py-6">
+  <main class="flex-1 overflow-y-auto pb-[80px]">
+    <div class="flex flex-col gap-4 pt-2">
       <div class="px-4">
         <div class="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100">
-          <img alt="제품 상세 사양" class="w-full h-auto object-cover" src="./images/product1.png" style="image-rendering: crisp-edges;">
+          <img alt="제품 상세 사양" class="w-full h-auto object-contain" src="./images/product1.png" style="image-rendering: crisp-edges;">
         </div>
       </div>
 
@@ -197,7 +178,7 @@
     </div>
   </main>
 
-  <nav class="absolute bottom-0 w-full z-50 bg-white border-t border-gray-100 flex justify-around items-center h-[80px] px-2 pb-safe shadow-lg">
+  <nav class="absolute bottom-0 left-0 w-full z-50 bg-[#ffffff] border-t border-gray-200 flex justify-around items-center h-[60px] px-2 shadow-lg">
     <a href="../dashboard/code.html" class="flex flex-col items-center justify-center w-1/4 text-gray-900 hover:text-gray-900 transition-colors decoration-none">
       <span class="material-symbols-outlined text-[24px] mb-1" style="color: #111827;">home</span>
       <span class="text-[11px] font-medium text-gray-900">홈</span>
@@ -218,9 +199,3 @@
 </div>
 </body>
 </html>
-</div>
-
-
-
-
-</body></html>

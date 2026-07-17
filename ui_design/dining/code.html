@@ -1,348 +1,416 @@
-<!DOCTYPE html><html lang="en" style=""><head>
-<script>
-  (function() {
-    const CONFIG_USE_TIMER = true; 
-    const isInjecting = localStorage.getItem('isInjecting') === 'true';
-    const currentPath = window.location.pathname;
-    const preventPaths = ['meal_injection', 'add_injection', 'dining', 'exercise'];
-    const isPreventPath = preventPaths.some(path => currentPath.includes(path));
-    
-    function showToast(message) {
-      const toast = document.createElement('div');
-      toast.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 bg-slate-800/90 text-white text-[13px] px-5 py-3 rounded-full shadow-lg z-[9999] transition-all duration-300 opacity-0 transform translate-y-2 pointer-events-none whitespace-nowrap font-medium';
-      toast.innerText = message;
-      document.body.appendChild(toast);
-      
-      toast.offsetHeight;
-      toast.classList.remove('opacity-0', 'translate-y-2');
-      toast.classList.add('opacity-100', 'translate-y-0');
-      
-      setTimeout(() => {
-        toast.classList.remove('opacity-100', 'translate-y-0');
-        toast.classList.add('opacity-0', 'translate-y-2');
-        setTimeout(() => toast.remove(), 300);
-      }, 2000);
-    }
-    
-    if (isInjecting && isPreventPath) {
-      localStorage.setItem('showToastMsg', '주입 중에서 수행할 수 없습니다');
-      window.location.href = '../dashboard/code.html';
-      return;
-    }
-    
-    let activeTimer = null;
-    
-    function checkInjectingStatus() {
-      const activeInjecting = localStorage.getItem('isInjecting') === 'true';
-      if (!activeInjecting) {
-        if (activeTimer) {
-          clearTimeout(activeTimer);
-          activeTimer = null;
-        }
+<!DOCTYPE html>
+<html lang="en" style="">
+
+<head>
+  <script>
+    (function () {
+      const CONFIG_USE_TIMER = true;
+      const isInjecting = localStorage.getItem('isInjecting') === 'true';
+      const currentPath = window.location.pathname;
+      const preventPaths = ['meal_injection', 'add_injection', 'dining', 'exercise'];
+      const isPreventPath = preventPaths.some(path => currentPath.includes(path));
+
+      window.showToast = function (message) {
+        const toast = document.createElement('div');
+        toast.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 bg-slate-800/90 text-white text-[13px] px-5 py-3 rounded-full shadow-lg z-[9999] transition-all duration-300 opacity-0 transform translate-y-2 pointer-events-none whitespace-nowrap font-medium';
+        toast.innerText = message;
+        document.body.appendChild(toast);
+
+        toast.offsetHeight;
+        toast.classList.remove('opacity-0', 'translate-y-2');
+        toast.classList.add('opacity-100', 'translate-y-0');
+
+        setTimeout(() => {
+          toast.classList.remove('opacity-100', 'translate-y-0');
+          toast.classList.add('opacity-0', 'translate-y-2');
+          setTimeout(() => toast.remove(), 300);
+        }, 2000);
+      };
+
+      if (isInjecting && isPreventPath) {
+        localStorage.setItem('showToastMsg', '주입 중에서 수행할 수 없습니다');
+        window.location.href = '../dashboard/code.html';
         return;
       }
-      
-      const endTime = parseInt(localStorage.getItem('injectingEndTime') || '0', 10);
-      const now = Date.now();
-      const useTimer = CONFIG_USE_TIMER && (localStorage.getItem('CONFIG_USE_TIMER') !== 'false');
-      
-      if (useTimer && endTime > 0) {
-        if (now >= endTime) {
-          triggerComplete();
-        } else {
-          const delay = endTime - now;
-          if (activeTimer) clearTimeout(activeTimer);
-          activeTimer = setTimeout(triggerComplete, delay);
+
+      let activeTimer = null;
+
+      function checkInjectingStatus() {
+        const activeInjecting = localStorage.getItem('isInjecting') === 'true';
+        if (!activeInjecting) {
+          if (activeTimer) {
+            clearTimeout(activeTimer);
+            activeTimer = null;
+          }
+          return;
+        }
+
+        const endTime = parseInt(localStorage.getItem('injectingEndTime') || '0', 10);
+        const now = Date.now();
+        const useTimer = CONFIG_USE_TIMER && (localStorage.getItem('CONFIG_USE_TIMER') !== 'false');
+
+        if (useTimer && endTime > 0) {
+          if (now >= endTime) {
+            triggerComplete();
+          } else {
+            const delay = endTime - now;
+            if (activeTimer) clearTimeout(activeTimer);
+            activeTimer = setTimeout(triggerComplete, delay);
+          }
         }
       }
-    }
-    
-    function triggerComplete() {
-      console.log('BLE 수신 시뮬레이션: BT_INJ_STOP_IND (0x3B) 주입 완료 수신');
-      localStorage.setItem('isInjecting', 'false');
-      localStorage.removeItem('injectingEndTime');
-      localStorage.setItem('showCompleteModal', 'true');
-      window.location.href = '../dashboard/code.html';
-    }
-    
-    function init() {
-      const pendingToast = localStorage.getItem('showToastMsg');
-      if (pendingToast) {
-        localStorage.removeItem('showToastMsg');
-        if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', () => showToast(pendingToast));
-        } else {
-          showToast(pendingToast);
-        }
+
+      function triggerComplete() {
+        console.log('BLE 수신 시뮬레이션: BT_INJ_STOP_IND (0x3B) 주입 완료 수신');
+        localStorage.setItem('isInjecting', 'false');
+        localStorage.removeItem('injectingEndTime');
+        localStorage.setItem('showCompleteModal', 'true');
+        window.location.href = '../dashboard/code.html';
       }
-      checkInjectingStatus();
-    }
-    
-    init();
-    
-    window.addEventListener('storage', (e) => {
-      if (e.key === 'isInjecting') {
-        const updatedInjecting = localStorage.getItem('isInjecting') === 'true';
-        if (updatedInjecting && isPreventPath) {
-          localStorage.setItem('showToastMsg', '주입 중에서 수행할 수 없습니다');
-          window.location.href = '../dashboard/code.html';
-        } else if (!updatedInjecting && isInjecting && !isPreventPath) {
-          localStorage.setItem('showCompleteModal', 'true');
-          window.location.href = '../dashboard/code.html';
+
+      function init() {
+        const pendingToast = localStorage.getItem('showToastMsg');
+        if (pendingToast) {
+          localStorage.removeItem('showToastMsg');
+          if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => showToast(pendingToast));
+          } else {
+            showToast(pendingToast);
+          }
         }
-      }
-      if (e.key === 'isInjecting' || e.key === 'injectingEndTime' || e.key === 'CONFIG_USE_TIMER') {
         checkInjectingStatus();
       }
-    });
-  })();
-</script>
-<meta charset="utf-8">
-<meta content="width=device-width, initial-scale=1.0" name="viewport">
-<title>Dining Apply Page</title>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
-<style>
-        .material-symbols-outlined {
-            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+
+      init();
+
+      window.addEventListener('storage', (e) => {
+        if (e.key === 'isInjecting') {
+          const updatedInjecting = localStorage.getItem('isInjecting') === 'true';
+          if (updatedInjecting && isPreventPath) {
+            localStorage.setItem('showToastMsg', '주입 중에서 수행할 수 없습니다');
+            window.location.href = '../dashboard/code.html';
+          } else if (!updatedInjecting && isInjecting && !isPreventPath) {
+            localStorage.setItem('showCompleteModal', 'true');
+            window.location.href = '../dashboard/code.html';
+          }
         }
-        /* Custom scrollbar for webkit */
-        ::-webkit-scrollbar {
-            width: 6px;
+        if (e.key === 'isInjecting' || e.key === 'injectingEndTime' || e.key === 'CONFIG_USE_TIMER') {
+          checkInjectingStatus();
         }
-        ::-webkit-scrollbar-track {
-            background: transparent;
+      });
+    })();
+  </script>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Dining Apply Page</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=Manrope:wght@400;500;600;700;800&amp;display=swap"
+    rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+    rel="stylesheet">
+  <style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+
+    /* Custom scrollbar for webkit */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #bfc8c8;
+      border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #707979;
+    }
+  </style>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-tertiary-fixed": "#321201",
+            "on-tertiary": "#ffffff",
+            "primary-fixed": "#b6ecee",
+            "inverse-on-surface": "#e7f3f5",
+            "on-primary-fixed": "#002021",
+            "on-error": "#ffffff",
+            "on-error-container": "#93000a",
+            "on-secondary-fixed": "#002021",
+            "surface-dim": "#d0dcdf",
+            "on-tertiary-fixed-variant": "#673c23",
+            "surface": "#f8fafa",
+            "background": "#f8fafa",
+            "surface-container-highest": "#d9e5e7",
+            "on-primary": "#ffffff",
+            "secondary-container": "#aeeef1",
+            "on-primary-container": "#a2d8da",
+            "on-surface": "#121d1f",
+            "tertiary-fixed-dim": "#f7b998",
+            "on-secondary-fixed-variant": "#004f52",
+            "outline": "#707979",
+            "on-tertiary-container": "#ffc1a1",
+            "tertiary-fixed": "#ffdbca",
+            "surface-container-lowest": "#ffffff",
+            "surface-container": "#eceeee",
+            "on-secondary-container": "#2d6e71",
+            "on-primary-fixed-variant": "#144e50",
+            "tertiary-container": "#7b4d33",
+            "surface-variant": "#d9e5e7",
+            "surface-container-low": "#eaf6f8",
+            "primary-container": "#2a6062",
+            "error-container": "#ffdad6",
+            "surface-container-high": "#deeaed",
+            "surface-tint": "#316668",
+            "secondary-fixed-dim": "#93d1d4",
+            "on-secondary": "#ffffff",
+            "tertiary": "#60361e",
+            "secondary": "#26676a",
+            "on-background": "#121d1f",
+            "error": "#ba1a1a",
+            "secondary-fixed": "#aeeef1",
+            "on-surface-variant": "#404849",
+            "inverse-surface": "#273234",
+            "primary-fixed-dim": "#9ad0d2",
+            "inverse-primary": "#9ad0d2",
+            "primary": "#0a484a",
+            "outline-variant": "#bfc8c8",
+            "surface-bright": "#f8fafa"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "margin-desktop": "48px",
+            "base": "8px",
+            "lg": "24px",
+            "md": "16px",
+            "gutter": "16px",
+            "xl": "32px",
+            "sm": "12px",
+            "xs": "4px",
+            "margin-mobile": "20px"
+          },
+          "fontFamily": {
+            "body-lg": ["Plus Jakarta Sans"],
+            "body-md": ["Plus Jakarta Sans"],
+            "headline-lg-mobile": ["Manrope"],
+            "body-sm": ["Plus Jakarta Sans"],
+            "headline-sm": ["Manrope"],
+            "label-md": ["Manrope"],
+            "label-lg": ["Manrope"],
+            "headline-md": ["Manrope"],
+            "headline-lg": ["Manrope"]
+          },
+          "fontSize": {
+            "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+            "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "headline-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "700" }],
+            "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+            "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+            "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+          }
         }
-        ::-webkit-scrollbar-thumb {
-            background: #bfc8c8;
-            border-radius: 10px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #707979;
-        }
-    </style>
-<script id="tailwind-config">
-        tailwind.config = {
-            darkMode: "class",
-            theme: {
-                extend: {
-                    "colors": {
-                        "on-tertiary-fixed": "#321201",
-                        "on-tertiary": "#ffffff",
-                        "primary-fixed": "#b6ecee",
-                        "inverse-on-surface": "#e7f3f5",
-                        "on-primary-fixed": "#002021",
-                        "on-error": "#ffffff",
-                        "on-error-container": "#93000a",
-                        "on-secondary-fixed": "#002021",
-                        "surface-dim": "#d0dcdf",
-                        "on-tertiary-fixed-variant": "#673c23",
-                        "surface": "#f8fafa",
-                        "background": "#f8fafa",
-                        "surface-container-highest": "#d9e5e7",
-                        "on-primary": "#ffffff",
-                        "secondary-container": "#aeeef1",
-                        "on-primary-container": "#a2d8da",
-                        "on-surface": "#121d1f",
-                        "tertiary-fixed-dim": "#f7b998",
-                        "on-secondary-fixed-variant": "#004f52",
-                        "outline": "#707979",
-                        "on-tertiary-container": "#ffc1a1",
-                        "tertiary-fixed": "#ffdbca",
-                        "surface-container-lowest": "#ffffff",
-                        "surface-container": "#eceeee",
-                        "on-secondary-container": "#2d6e71",
-                        "on-primary-fixed-variant": "#144e50",
-                        "tertiary-container": "#7b4d33",
-                        "surface-variant": "#d9e5e7",
-                        "surface-container-low": "#eaf6f8",
-                        "primary-container": "#2a6062",
-                        "error-container": "#ffdad6",
-                        "surface-container-high": "#deeaed",
-                        "surface-tint": "#316668",
-                        "secondary-fixed-dim": "#93d1d4",
-                        "on-secondary": "#ffffff",
-                        "tertiary": "#60361e",
-                        "secondary": "#26676a",
-                        "on-background": "#121d1f",
-                        "error": "#ba1a1a",
-                        "secondary-fixed": "#aeeef1",
-                        "on-surface-variant": "#404849",
-                        "inverse-surface": "#273234",
-                        "primary-fixed-dim": "#9ad0d2",
-                        "inverse-primary": "#9ad0d2",
-                        "primary": "#0a484a",
-                        "outline-variant": "#bfc8c8",
-                        "surface-bright": "#f8fafa"
-                    },
-                    "borderRadius": {
-                        "DEFAULT": "0.25rem",
-                        "lg": "0.5rem",
-                        "xl": "0.75rem",
-                        "full": "9999px"
-                    },
-                    "spacing": {
-                        "margin-desktop": "48px",
-                        "base": "8px",
-                        "lg": "24px",
-                        "md": "16px",
-                        "gutter": "16px",
-                        "xl": "32px",
-                        "sm": "12px",
-                        "xs": "4px",
-                        "margin-mobile": "20px"
-                    },
-                    "fontFamily": {
-                        "body-lg": ["Plus Jakarta Sans"],
-                        "body-md": ["Plus Jakarta Sans"],
-                        "headline-lg-mobile": ["Manrope"],
-                        "body-sm": ["Plus Jakarta Sans"],
-                        "headline-sm": ["Manrope"],
-                        "label-md": ["Manrope"],
-                        "label-lg": ["Manrope"],
-                        "headline-md": ["Manrope"],
-                        "headline-lg": ["Manrope"]
-                    },
-                    "fontSize": {
-                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
-                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
-                        "headline-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "700" }],
-                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
-                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
-                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
-                        "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600" }],
-                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
-                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }]
-                    }
-                }
-            }
-        }
-    </script>
-<style>body { min-height: 884px; width: 390px; margin: 0 auto; }</style>
+      }
+    }
+  </script>
+  <style>
+    body {
+      height: 100vh;
+      max-width: 390px;
+      width: 100%;
+      margin: 0 auto;
+    }
+  </style>
 </head>
-<body class="bg-background text-on-background font-body-md antialiased min-h-[884px] w-[390px] mx-auto flex flex-col pt-8 overflow-hidden" style="height: 884px; width: 390px; margin: 0 auto; overflow: hidden;">
-<!-- Mobile Container Wrapper -->
-<div class="w-full h-full bg-background relative flex flex-col">
-<!-- TopAppBar -->
-<header class="bg-background w-full z-50 flex items-center px-margin-mobile py-base h-[64px] justify-start">
-<h1 class="font-headline-sm text-[24px] leading-[32px] font-semibold text-on-surface text-left mt-[8px] mt-1 mt-2">
-                회식 적용
-            </h1>
-</header>
-<!-- Main Content Area -->
-<main class="flex-1 overflow-y-auto px-margin-mobile flex flex-col gap-md pb-[120px]">
-<!-- Info Box -->
-<div class="bg-surface-container rounded-xl p-md flex gap-sm items-start">
-<span class="material-symbols-outlined text-primary mt-0.5" style="font-variation-settings: &quot;FILL&quot; 1;">info</span>
-<p class="font-body-sm text-[11px] leading-tight text-on-surface-variant font-medium"><span class="" style="color: rgb(63, 72, 73); font-family: Inter;">-회식적용은 식사설정에 예약된 단위수를 비교적 적절한 회식시간을 추정하여 나누어 주입하는 기능</span><br style="--tw-border-spacing-y: 0; --tw-translate-x: 0; --tw-translate-y: 0; --tw-rotate: 0; --tw-skew-x: 0; --tw-skew-y: 0; --tw-scale-x: 1; --tw-scale-y: 1; --tw-pan-x: ; --tw-pan-y: ; --tw-pinch-zoom: ; --tw-scroll-snap-strictness: proximity; --tw-gradient-from-position: ; --tw-gradient-via-position: ; --tw-gradient-to-position: ; --tw-ordinal: ; --tw-slashed-zero: ; --tw-numeric-figure: ; --tw-numeric-spacing: ; --tw-numeric-fraction: ; --tw-ring-inset: ; --tw-ring-offset-width: 0px; --tw-ring-offset-color: #fff; --tw-ring-color: rgb(59 130 246 / 0.5); --tw-ring-offset-shadow: 0 0 #0000; --tw-ring-shadow: 0 0 #0000; --tw-shadow: 0 0 #0000; --tw-shadow-colored: 0 0 #0000; --tw-blur: ; --tw-brightness: ; --tw-contrast: ; --tw-grayscale: ; --tw-hue-rotate: ; --tw-invert: ; --tw-saturate: ; --tw-sepia: ; --tw-drop-shadow: ; --tw-backdrop-blur: ; --tw-backdrop-brightness: ; --tw-backdrop-contrast: ; --tw-backdrop-grayscale: ; --tw-backdrop-hue-rotate: ; --tw-backdrop-invert: ; --tw-backdrop-opacity: ; --tw-backdrop-saturate: ; --tw-backdrop-sepia: ; --tw-contain-size: ; --tw-contain-layout: ; --tw-contain-paint: ; --tw-contain-style: ; color: rgb(63, 72, 73); font-family: Inter;"><span class="" style="color: rgb(63, 72, 73); font-family: Inter;">-회식시간을 1시간~8시간까지 설정, 회식시간 중 인슐린 양과 횟수를 실행 또는 해제가능</span></p>
-</div>
-<!-- Vitals/Settings Cards Container (Bento Grid Style) -->
-<div class="grid grid-cols-1 gap-md">
-<!-- Breakfast Card -->
-<div class="bg-surface-container-lowest rounded-xl p-md border border-outline-variant/50 shadow-sm flex items-center justify-between">
-<span class="font-body-md font-semibold text-on-surface text-body-sm">아침설정 값</span>
-<div class="flex items-center">
-<input class="w-16 text-right border-none rounded-lg font-headline-sm text-on-surface py-2 focus:ring-0 bg-gray-100 text-body-lg" readonly="" type="text" id="breakfast-val" value="1.00">
-<span class="font-body-md text-on-surface ml-2 w-4">U</span>
-</div>
-</div>
-<!-- Lunch Card -->
-<div class="bg-surface-container-lowest rounded-xl p-md border border-outline-variant/50 shadow-sm flex items-center justify-between">
-<span class="font-body-md font-semibold text-on-surface text-body-sm">점심설정 값</span>
-<div class="flex items-center">
-<input class="w-16 text-right border-none rounded-lg font-headline-sm text-on-surface py-2 focus:ring-0 bg-gray-100 text-body-lg" readonly="" type="text" id="lunch-val" value="1.00">
-<span class="font-body-md text-on-surface ml-2 w-4">U</span>
-</div>
-</div>
-<!-- Dinner Card -->
-<div class="bg-surface-container-lowest rounded-xl p-md border border-outline-variant/50 shadow-sm flex items-center justify-between">
-<span class="font-body-md font-semibold text-on-surface text-body-sm">저녁설정 값</span>
-<div class="flex items-center">
-<input class="w-16 text-center border-none rounded-xl font-headline-sm text-on-surface py-2 focus:ring-0 bg-gray-100 text-body-lg" readonly="" type="text" id="dinner-val" value="1.00">
-<span class="font-body-md text-on-surface ml-2 w-4">U</span>
-</div>
-</div>
-<!-- Time Setting Card -->
-<div class="bg-surface-container-lowest rounded-xl p-md border border-outline-variant/50 shadow-sm flex items-center justify-between mt-sm">
-<span class="font-body-md text-body-md font-semibold text-on-surface">시간 설정(단위: 시간)</span>
-<div class="relative w-24">
-<select class="w-full appearance-none bg-surface-container-low border border-primary/30 text-primary font-headline-sm text-headline-sm rounded-lg py-2 pl-4 pr-4 focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer shadow-sm" id="timeSetting">
-<option value="1">1</option>
-<option selected="" value="2">2</option>
-<option value="3">3</option>
-<option value="4">4</option>
-<option value="5">5</option>
-<option value="6">6</option>
-<option value="7">7</option>
-<option value="8">8</option>
-</select>
-</div>
-</div>
-</div>
-<!-- Decorative Image -->
-<div class="rounded-xl overflow-hidden w-full shadow-sm border border-outline-variant/20 pt-xs h-[160px] mt-md">
-<img alt="People enjoying a dining experience together" class="w-full h-full object-cover" src="./images/dining.png">
-</div>
-</main>
-<!-- Fixed Footer Actions -->
-<footer class="fixed bottom-0 w-[390px] bg-background px-margin-mobile flex gap-sm z-50 pt-md pb-10">
-<button class="flex-1 bg-[#1f6568] text-white font-semibold text-[14px] leading-[20px] rounded-full hover:opacity-90 transition-opacity active:scale-[0.98] h-[56px]" id="applyBtn">
-                회식적용
-            </button>
-<button class="flex-1 bg-[#e6e8e9] text-[#191c1d] font-semibold text-[14px] leading-[20px] rounded-full hover:opacity-80 transition-opacity active:scale-[0.98] h-[56px]" id="closeBtn">
-                닫기
-            </button>
-</footer>
-</div>
-<script>
+
+<body
+  class="bg-background text-on-background font-body-md antialiased h-screen max-w-[390px] w-full mx-auto flex flex-col pt-2 overflow-hidden"
+  style="height: 100vh; max-width: 390px; width: 100%; margin: 0 auto; overflow: hidden;">
+  <!-- Mobile Container Wrapper -->
+  <div class="w-full h-full bg-background relative flex flex-col">
+    <!-- TopAppBar -->
+    <header class="bg-background w-full z-50 flex items-center px-margin-mobile py-base h-[64px] justify-start">
+      <h1
+        class="font-headline-sm text-[24px] leading-[32px] font-semibold text-on-surface text-left mt-[8px] mt-1 mt-2">
+        회식 적용
+      </h1>
+    </header>
+    <!-- Main Content Area -->
+    <main class="flex-1 overflow-y-auto px-margin-mobile flex flex-col gap-md pb-[80px]">
+      <!-- Info Box -->
+      <div class="bg-surface-container rounded-xl p-md flex gap-sm items-start">
+        <span class="material-symbols-outlined text-primary mt-0.5"
+          style="font-variation-settings: &quot;FILL&quot; 1;">info</span>
+        <p class="font-body-sm text-[11px] leading-tight text-on-surface-variant font-medium"><span class=""
+            style="color: rgb(63, 72, 73); font-family: Inter;">-회식적용은 식사설정에 예약된 단위수를 비교적 적절한 회식시간을 추정하여 나누어 주입하는
+            기능</span><br
+            style="--tw-border-spacing-y: 0; --tw-translate-x: 0; --tw-translate-y: 0; --tw-rotate: 0; --tw-skew-x: 0; --tw-skew-y: 0; --tw-scale-x: 1; --tw-scale-y: 1; --tw-pan-x: ; --tw-pan-y: ; --tw-pinch-zoom: ; --tw-scroll-snap-strictness: proximity; --tw-gradient-from-position: ; --tw-gradient-via-position: ; --tw-gradient-to-position: ; --tw-ordinal: ; --tw-slashed-zero: ; --tw-numeric-figure: ; --tw-numeric-spacing: ; --tw-numeric-fraction: ; --tw-ring-inset: ; --tw-ring-offset-width: 0px; --tw-ring-offset-color: #fff; --tw-ring-color: rgb(59 130 246 / 0.5); --tw-ring-offset-shadow: 0 0 #0000; --tw-ring-shadow: 0 0 #0000; --tw-shadow: 0 0 #0000; --tw-shadow-colored: 0 0 #0000; --tw-blur: ; --tw-brightness: ; --tw-contrast: ; --tw-grayscale: ; --tw-hue-rotate: ; --tw-invert: ; --tw-saturate: ; --tw-sepia: ; --tw-drop-shadow: ; --tw-backdrop-blur: ; --tw-backdrop-brightness: ; --tw-backdrop-contrast: ; --tw-backdrop-grayscale: ; --tw-backdrop-hue-rotate: ; --tw-backdrop-invert: ; --tw-backdrop-opacity: ; --tw-backdrop-saturate: ; --tw-backdrop-sepia: ; --tw-contain-size: ; --tw-contain-layout: ; --tw-contain-paint: ; --tw-contain-style: ; color: rgb(63, 72, 73); font-family: Inter;"><span
+            class="" style="color: rgb(63, 72, 73); font-family: Inter;">-회식시간을 1시간~8시간까지 설정, 회식시간 중 인슐린 양과 횟수를 실행 또는
+            해제가능</span></p>
+      </div>
+      <!-- Vitals/Settings Cards Container (Bento Grid Style) -->
+      <div class="grid grid-cols-1 gap-md">
+        <!-- Breakfast Card -->
+        <div
+          class="bg-surface-container-lowest rounded-xl p-md border border-outline-variant/50 shadow-sm flex items-center justify-between">
+          <span class="font-body-md font-semibold text-on-surface text-body-sm">아침설정 값</span>
+          <div class="flex items-center">
+            <input
+              class="w-16 text-right border-none rounded-lg font-headline-sm text-on-surface py-2 focus:ring-0 bg-gray-100 text-body-lg"
+              readonly="" type="text" id="breakfast-val" value="1.00">
+            <span class="font-body-md text-on-surface ml-2 w-4">U</span>
+          </div>
+        </div>
+        <!-- Lunch Card -->
+        <div
+          class="bg-surface-container-lowest rounded-xl p-md border border-outline-variant/50 shadow-sm flex items-center justify-between">
+          <span class="font-body-md font-semibold text-on-surface text-body-sm">점심설정 값</span>
+          <div class="flex items-center">
+            <input
+              class="w-16 text-right border-none rounded-lg font-headline-sm text-on-surface py-2 focus:ring-0 bg-gray-100 text-body-lg"
+              readonly="" type="text" id="lunch-val" value="1.00">
+            <span class="font-body-md text-on-surface ml-2 w-4">U</span>
+          </div>
+        </div>
+        <!-- Dinner Card -->
+        <div
+          class="bg-surface-container-lowest rounded-xl p-md border border-outline-variant/50 shadow-sm flex items-center justify-between">
+          <span class="font-body-md font-semibold text-on-surface text-body-sm">저녁설정 값</span>
+          <div class="flex items-center">
+            <input
+              class="w-16 text-right border-none rounded-xl font-headline-sm text-on-surface py-2 focus:ring-0 bg-gray-100 text-body-lg"
+              readonly="" type="text" id="dinner-val" value="1.00">
+            <span class="font-body-md text-on-surface ml-2 w-4">U</span>
+          </div>
+        </div>
+        <!-- Time Setting Card -->
+        <div
+          class="bg-surface-container-lowest rounded-xl p-md border border-outline-variant/50 shadow-sm flex items-center justify-between mt-sm">
+          <span class="font-body-md text-body-md font-semibold text-on-surface">시간 설정(단위: 시간)</span>
+          <div class="relative w-24">
+            <select
+              class="w-full appearance-none bg-surface-container-low border border-primary/30 text-primary font-headline-sm text-headline-sm rounded-lg py-2 pl-4 pr-4 focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer shadow-sm"
+              id="timeSetting">
+              <option value="1">1</option>
+              <option selected="" value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+              <option value="7">7</option>
+              <option value="8">8</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <!-- Decorative Image -->
+      <div class="rounded-xl overflow-hidden w-full shadow-sm border border-outline-variant/20 relative h-[160px] mt-md">
+        <img alt="People enjoying a dining experience together" class="w-full h-full object-cover"
+          src="./images/dining.png">
+      </div>
+    </main>
+    <!-- Fixed Footer Actions -->
+    <footer class="fixed bottom-0 w-full max-w-[390px] bg-background px-margin-mobile flex gap-sm z-50 pt-md pb-4">
+      <button
+        class="flex-1 bg-[#1f6568] text-white font-semibold text-[14px] leading-[20px] rounded-full hover:opacity-90 transition-opacity active:scale-[0.98] h-[56px]"
+        id="applyBtn">
+        회식적용
+      </button>
+      <button
+        class="flex-1 bg-[#e6e8e9] text-[#191c1d] font-semibold text-[14px] leading-[20px] rounded-full hover:opacity-80 transition-opacity active:scale-[0.98] h-[56px]"
+        id="closeBtn">
+        닫기
+      </button>
+    </footer>
+  </div>
+  <script>
     document.addEventListener('DOMContentLoaded', () => {
-        const timeSetting = document.getElementById('timeSetting');
-        const applyBtn = document.getElementById('applyBtn');
-        const closeBtn = document.getElementById('closeBtn');
-        const breakfastInput = document.getElementById('breakfast-val');
-        const lunchInput = document.getElementById('lunch-val');
-        const dinnerInput = document.getElementById('dinner-val');
+      const timeSetting = document.getElementById('timeSetting');
+      const applyBtn = document.getElementById('applyBtn');
+      const closeBtn = document.getElementById('closeBtn');
+      const breakfastInput = document.getElementById('breakfast-val');
+      const lunchInput = document.getElementById('lunch-val');
+      const dinnerInput = document.getElementById('dinner-val');
 
-        // Load setting values from localStorage
-        try {
-            const saved = window.localStorage.getItem('meal_settings');
-            if (saved) {
-                const parsed = JSON.parse(saved);
-                if (parsed.breakfast) breakfastInput.value = parsed.breakfast;
-                if (parsed.lunch) lunchInput.value = parsed.lunch;
-                if (parsed.dinner) dinnerInput.value = parsed.dinner;
-            }
-        } catch (e) {
-            console.error('Failed to load meal settings', e);
+      // Load setting values from localStorage
+      try {
+        const saved = window.localStorage.getItem('meal_settings');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.breakfast) breakfastInput.value = parsed.breakfast;
+          if (parsed.lunch) lunchInput.value = parsed.lunch;
+          if (parsed.dinner) dinnerInput.value = parsed.dinner;
         }
+      } catch (e) {
+        console.error('Failed to load meal settings', e);
+      }
 
-        const goToDashboard = (params = {}) => {
-            const query = new URLSearchParams(params).toString();
-            window.location.href = `../dashboard/code.html${query ? `?${query}` : ''}`;
+      const goToDashboard = (params = {}) => {
+        const query = new URLSearchParams(params).toString();
+        window.location.href = `../dashboard/code.html${query ? `?${query}` : ''}`;
+      };
+
+      applyBtn.addEventListener('click', () => {
+        const finalValue = timeSetting.value;
+
+        applyBtn.disabled = true;
+        applyBtn.classList.add('opacity-70', 'cursor-not-allowed');
+
+        console.log(`BLE 명령 전송: SEND_DINING_COMMAND: ${finalValue}시간`);
+
+        window.onInjectionApproved = () => {
+          applyBtn.disabled = false;
+          applyBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+          localStorage.setItem('isInjecting', 'true');
+          localStorage.setItem('injectingEndTime', (Date.now() + 5000).toString());
+          const payload = encodeURIComponent(JSON.stringify({
+            time: finalValue,
+            breakfast: breakfastInput.value,
+            lunch: lunchInput.value,
+            dinner: dinnerInput.value
+          }));
+          goToDashboard({
+            modal: 'request',
+            action: 'dining',
+            payload
+          });
         };
 
-        applyBtn.addEventListener('click', () => {
-            const finalValue = timeSetting.value;
-            const payload = encodeURIComponent(JSON.stringify({
-                time: finalValue,
-                breakfast: breakfastInput.value,
-                lunch: lunchInput.value,
-                dinner: dinnerInput.value
-            }));
+        window.onInjectionRejected = () => {
+          applyBtn.disabled = false;
+          applyBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+          if (typeof showToast === 'function') {
+            showToast('주입 요청을 취소합니다.');
+          } else if (typeof window.showToast === 'function') {
+            window.showToast('주입 요청을 취소합니다.');
+          }
+        };
+      });
 
-            goToDashboard({
-                modal: 'request',
-                action: 'dining',
-                payload
-            });
-        });
-
-        closeBtn.addEventListener('click', () => {
-            goToDashboard();
-        });
+      closeBtn.addEventListener('click', () => {
+        goToDashboard();
+      });
     });
-</script>
+  </script>
 
 
-</body></html>
+</body>
+
+</html>

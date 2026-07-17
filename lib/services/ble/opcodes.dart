@@ -14,6 +14,7 @@ class Opcodes {
   static const int btCurTimeInd = 0x06; // 현재 시간 정보 알림
   static const int btBattDataReq = 0x70; // 배터리 잔량 요청
   static const int btBattDataInd = 0x71; // 배터리 잔량 응답
+  static const int btBattDataRes = 0x72; // 배터리 잔량 응답 (0x72)
   static const int btPumpPidReq = 0x09; // 펌프 PID 요청
   static const int btPumpPidRes = 0x0A; // 펌프 PID 응답
   static const int btPumpFwReq = 0x3E; // 펌프 FW 버전 요청
@@ -47,7 +48,11 @@ class Opcodes {
   static const int btBaseValueRes = 0x30; // 펌프 기초 설정값 전달
   static const int btBaseValueInd = 0x40; // 기초 설정값 변경 시 전달
   static const int btPrsAppPasswdInd = 0x3C; // 기존 Passwd 정보 전달 (앱 -> 펌프)
-  static const int btNewAppPasswdInd = 0x3D; // 신규 Passwd 정보 전달 (펌프 -> 앱)
+  static const int btNewAppPasswdInd = 0x42; // 신규 Passwd 정보 전달 (펌프 -> 앱) - 사용자 요청 0x42 매핑 반영
+  static const int btPrsAppPasswdReq = 0x41; // 현재 앱 PassWord 조회 요청 (앱 -> 인슐린펌프)
+  static const int btPrsAppPasswdRes = 0x3D; // 현재 PassWord 전달 (인슐린펌프 -> 앱)
+  static const int btSystemReset = 0x43; // 시스템 Reset (앱 -> 인슐린펌프)
+  static const int btCurTimeRes = 0x44; // 앱으로부터 받은 시간을 앱에게 확인 (인슐린펌프 -> 앱)
 }
 
 /// 요청에 대한 응답 코드 (RES_CODE) 정의

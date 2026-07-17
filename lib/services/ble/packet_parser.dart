@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-/// Little-endian 정수 변환 및 6Byte DATE 구조체 인코딩/디코딩 파서 유틸리티
+/// Big-endian 정수 변환 및 6Byte DATE 구조체 인코딩/디코딩 파서 유틸리티
 class PacketParser {
   /// 6Byte DATE 바이트(연, 월, 일, 시, 분, 초)를 [DateTime] 객체로 디코딩합니다.
   /// 연도가 100보다 작은 경우 2000을 더해 2000년대 날짜로 보정합니다.
@@ -47,42 +47,42 @@ class PacketParser {
     ];
   }
 
-  /// Little-endian 16비트 정수(2바이트)를 읽습니다.
+  /// Big-endian 16비트 정수(2바이트)를 읽습니다.
   static int readUint16(List<int> bytes, int offset) {
     if (bytes.length < offset + 2) {
       throw ArgumentError("Uint16을 읽기 위한 바이트가 부족합니다.");
     }
-    return bytes[offset] | (bytes[offset + 1] << 8);
+    return (bytes[offset] << 8) | bytes[offset + 1];
   }
 
-  /// Little-endian 16비트 정수(2바이트)를 바이트 버퍼에 씁니다.
+  /// Big-endian 16비트 정수(2바이트)를 바이트 버퍼에 씁니다.
   static void writeUint16(List<int> bytes, int offset, int value) {
     if (bytes.length < offset + 2) {
       throw ArgumentError("Uint16을 쓰기 위한 버퍼 크기가 부족합니다.");
     }
-    bytes[offset] = value & 0xFF;
-    bytes[offset + 1] = (value >> 8) & 0xFF;
+    bytes[offset] = (value >> 8) & 0xFF;
+    bytes[offset + 1] = value & 0xFF;
   }
 
-  /// Little-endian 32비트 정수(4바이트)를 읽습니다.
+  /// Big-endian 32비트 정수(4바이트)를 읽습니다.
   static int readUint32(List<int> bytes, int offset) {
     if (bytes.length < offset + 4) {
       throw ArgumentError("Uint32를 읽기 위한 바이트가 부족합니다.");
     }
-    return bytes[offset] |
-        (bytes[offset + 1] << 8) |
-        (bytes[offset + 2] << 16) |
-        (bytes[offset + 3] << 24);
+    return (bytes[offset] << 24) |
+        (bytes[offset + 1] << 16) |
+        (bytes[offset + 2] << 8) |
+        bytes[offset + 3];
   }
 
-  /// Little-endian 32비트 정수(4바이트)를 바이트 버퍼에 씁니다.
+  /// Big-endian 32비트 정수(4바이트)를 바이트 버퍼에 씁니다.
   static void writeUint32(List<int> bytes, int offset, int value) {
     if (bytes.length < offset + 4) {
       throw ArgumentError("Uint32를 쓰기 위한 버퍼 크기가 부족합니다.");
     }
-    bytes[offset] = value & 0xFF;
-    bytes[offset + 1] = (value >> 8) & 0xFF;
-    bytes[offset + 2] = (value >> 16) & 0xFF;
-    bytes[offset + 3] = (value >> 24) & 0xFF;
+    bytes[offset] = (value >> 24) & 0xFF;
+    bytes[offset + 1] = (value >> 16) & 0xFF;
+    bytes[offset + 2] = (value >> 8) & 0xFF;
+    bytes[offset + 3] = value & 0xFF;
   }
 }

@@ -139,8 +139,9 @@
       overflow: hidden;
     }
     .iphone-container {
-      width: 390px;
-      height: 884px;
+      width: 100%;
+      max-width: 390px;
+      height: 100vh;
       background-color: white;
       position: relative;
       overflow: hidden;
@@ -182,9 +183,9 @@
 </head>
 <body class="font-sans">
 <!-- BEGIN: Main Container -->
-<div class="iphone-container" data-purpose="mobile-screen" style="width: 390px; height: 884px; background-color: white; position: relative; overflow: hidden; display: flex; flex-direction: column; box-shadow: rgba(0, 0, 0, 0.1) 0px 0px 20px;">
+<div class="iphone-container" data-purpose="mobile-screen" style="width: 100%; max-width: 390px; height: 100vh; background-color: white; position: relative; overflow: hidden; display: flex; flex-direction: column; box-shadow: rgba(0, 0, 0, 0.1) 0px 0px 20px; margin: 0 auto;">
 <!-- BEGIN: Header -->
-<header class="text-teal-600 font-['Manrope'] antialiased tracking-tight full-width top-0 grid grid-cols-[1fr_auto_1fr] items-center w-full px-4 z-50 sticky pt-[48px] h-[104px] bg-white border-b border-gray-100 relative" data-purpose="main-header">
+<header class="text-teal-600 font-['Manrope'] antialiased tracking-tight full-width top-0 grid grid-cols-[1fr_auto_1fr] items-center w-full px-4 z-50 sticky pt-2 h-[64px] bg-white border-b border-gray-100 relative" data-purpose="main-header">
   <div class="w-10"></div>
   <h1 class="text-xl font-bold tracking-tight text-teal-700 whitespace-nowrap justify-self-center">히스토리</h1>
   <div class="flex items-center space-x-1 justify-self-end">
@@ -197,7 +198,7 @@
   </div>
 </header>
 <!-- END: Header -->
-<link class="" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><div class="main-scroll pt-4 mt-[12px] mt-6 pb-24">
+<link class="" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><div class="main-scroll pt-2 mt-2 pb-24">
 <section class="bg-gray-100 px-4 py-2 border-b border-gray-200" data-purpose="subheader">
 <div class="flex justify-between items-center text-sm text-gray-500 mb-2">
 <span class="">금일 주입 내용</span>
@@ -206,15 +207,15 @@
 <div class="flex justify-around items-center bg-white py-3 rounded-custom shadow-sm">
 <div class="flex items-center space-x-1">
 <span class="w-3 h-3 bg-chart-blue rounded-sm"></span>
-<span class="text-sm font-medium text-gray-600">기초 1.5</span>
+<span id="summary-basal" class="text-sm font-medium text-gray-600">기초 ---</span>
 </div>
 <div class="flex items-center space-x-1">
 <span class="w-3 h-3 bg-chart-green rounded-sm"></span>
-<span class="text-sm font-medium text-gray-600">식사 2.05</span>
+<span id="summary-meal" class="text-sm font-medium text-gray-600">식사 ---</span>
 </div>
 <div class="flex items-center space-x-1">
 <span class="w-3 h-3 bg-chart-yellow rounded-sm"></span>
-<span class="text-sm font-medium text-gray-600">추가 1</span>
+<span id="summary-append" class="text-sm font-medium text-gray-600">추가 ---</span>
 </div>
 </div>
 </section>
@@ -265,24 +266,27 @@
     <div class="flex-1">
       <div class="flex items-stretch gap-2">
         <!-- Y-axis values with vertical alignment matched to border grid (320px restored) -->
-        <div class="w-8 shrink-0 pr-1 text-[10px] text-gray-400 text-right flex flex-col justify-between h-[320px] pb-1 pt-1">
-          <span>100</span>
-          <span>80</span>
-          <span>60</span>
-          <span>40</span>
-          <span>20</span>
-          <span>0</span>
+        <div class="w-8 shrink-0 flex flex-col">
+          <!-- chart-date-row 및 margin-bottom(mb-1)과 대칭되는 spacer 높이 15px 확보 -->
+          <div class="h-[15px] mb-1"></div> 
+          <div class="w-full shrink-0 pr-1 text-[10px] text-gray-400 text-right h-[260px] relative">
+            <span class="absolute right-1" style="top: 0%; transform: translateY(-50%);">100</span>
+            <span class="absolute right-1" style="top: 20%; transform: translateY(-50%);">80</span>
+            <span class="absolute right-1" style="top: 40%; transform: translateY(-50%);">60</span>
+            <span class="absolute right-1" style="top: 60%; transform: translateY(-50%);">40</span>
+            <span class="absolute right-1" style="top: 80%; transform: translateY(-50%);">20</span>
+            <span class="absolute right-1" style="top: 100%; transform: translateY(-50%);">0</span>
+          </div>
         </div>
         <div class="flex-1">
           <div id="chart-date-row" class="grid grid-cols-5 gap-x-4 justify-items-center text-[10px] text-gray-500 mb-1"></div>
-          <div class="relative h-[320px] flex-1 border-l border-b border-gray-200 bg-white rounded-b-custom">
-            <div class="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-20 px-2">
-              <div class="border-t border-gray-300 w-full h-px"></div>
-              <div class="border-t border-gray-300 w-full h-px"></div>
-              <div class="border-t border-gray-300 w-full h-px"></div>
-              <div class="border-t border-gray-300 w-full h-px"></div>
-              <div class="border-t border-gray-300 w-full h-px"></div>
-              <div class="h-px"></div>
+          <div class="relative h-[260px] flex-1 border-l border-b border-gray-200 bg-white rounded-b-custom">
+            <div class="absolute inset-0 pointer-events-none opacity-20">
+              <div class="border-t border-gray-300 w-full h-px absolute" style="top: 0;"></div>
+              <div class="border-t border-gray-300 w-full h-px absolute" style="top: 20%;"></div>
+              <div class="border-t border-gray-300 w-full h-px absolute" style="top: 40%;"></div>
+              <div class="border-t border-gray-300 w-full h-px absolute" style="top: 60%;"></div>
+              <div class="border-t border-gray-300 w-full h-px absolute" style="top: 80%;"></div>
             </div>
             <div id="bar-container" class="absolute inset-0 grid grid-cols-5 gap-x-4 justify-items-center items-end"></div>
           </div>
@@ -338,13 +342,7 @@
   const CENTER_VALUES = {
     base: 1.5,
     meal: 2.05,
-    add: 1
-  };
-
-  const DEFAULT_DAY_VALUES = {
-    base: 7,
-    meal: 7,
-    add: 7
+    add: 1.0
   };
 
   const COLORS = {
@@ -353,7 +351,7 @@
     add: '#fde68a'
   };
 
-  const MAX_STACK_VALUE = 100;
+  const MAX_STACK_VALUE = 100; // U 단위 최대 기준치 100 U
   
   // 현재 중심 선택 날짜 관리 변수 (기본값 오늘)
   let currentSelectedDate = new Date();
@@ -394,12 +392,43 @@
 
   function buildSeries(centerDate) {
     const series = [];
+    const logsStr = localStorage.getItem('history_logs');
+    let dbLogs = [];
+    try {
+      if (logsStr) dbLogs = JSON.parse(logsStr);
+    } catch(e) {
+      console.error("Failed to parse history_logs", e);
+    }
+
     for (let offset = -4; offset <= 0; offset += 1) {
       const currentDate = addDays(centerDate, offset);
-      series.push({
-        date: currentDate,
-        values: offset === 0 ? CENTER_VALUES : DEFAULT_DAY_VALUES
-      });
+      const m = currentDate.getMonth() + 1;
+      const d = currentDate.getDate();
+      
+      // 일치하는 로그 매칭 검색
+      const match = dbLogs.find(log => log.month === m && log.day === d);
+      
+      if (match) {
+        series.push({
+          date: currentDate,
+          values: {
+            base: match.base_total,
+            meal: match.eat_total,
+            evening: match.append_total, // 추가 주입 데이터 스케일 일치
+            add: match.append_total // 테이블 표시용
+          }
+        });
+      } else {
+        series.push({
+          date: currentDate,
+          values: {
+            base: 0.0,
+            meal: 0.0,
+            evening: 0.0,
+            add: 0.0
+          }
+        });
+      }
     }
     return series;
   }
@@ -482,15 +511,25 @@
     if (barContainer) {
       barContainer.innerHTML = series
         .map((item) => {
-          const baseHeight = (item.values.base / MAX_STACK_VALUE) * 100;
-          const mealHeight = (item.values.meal / MAX_STACK_VALUE) * 100;
-          const addHeight = (item.values.add / MAX_STACK_VALUE) * 100;
+          const base = item.values.base || 0;
+          const meal = item.values.meal || 0;
+          const evening = item.values.evening || 0;
+          const total = base + meal + evening;
+
+          if (total === 0) {
+            return `<div class="w-8 h-full flex flex-col justify-end"></div>`;
+          }
+
+          const totalHeight = (total / MAX_STACK_VALUE) * 100;
+          const basePct = (base / total) * 100;
+          const mealPct = (meal / total) * 100;
+          const eveningPct = (evening / total) * 100;
 
           return `
-            <div class="w-8 h-full flex flex-col justify-end">
-              <div class="w-full rounded-t-[2px]" style="height:${addHeight}%; background:${COLORS.add};"></div>
-              <div class="w-full rounded-t-[2px]" style="height:${mealHeight}%; background:${COLORS.meal};"></div>
-              <div class="w-full rounded-t-[2px]" style="height:${baseHeight}%; background:${COLORS.base};"></div>
+            <div class="w-8 flex flex-col justify-end rounded-t-[2px] overflow-hidden" style="height:${Math.min(100, totalHeight)}%;">
+              <div class="w-full" style="height:${eveningPct}%; background:${COLORS.add};" title="추가/저녁: ${evening.toFixed(2)}U"></div>
+              <div class="w-full" style="height:${mealPct}%; background:${COLORS.meal};" title="식사: ${meal.toFixed(2)}U"></div>
+              <div class="w-full" style="height:${basePct}%; background:${COLORS.base};" title="기초: ${base.toFixed(2)}U"></div>
             </div>`;
         })
         .join('');
@@ -521,6 +560,30 @@
     renderChart();
   }
 
+  function updateSummaryFromLocalStorage() {
+    const localBasal = localStorage.getItem('basalSum') || '---';
+    const localMeal = localStorage.getItem('mealSum') || '---';
+    const localAppend = localStorage.getItem('appendSum') || '---';
+    
+    const basalEl = document.getElementById('summary-basal');
+    const mealEl = document.getElementById('summary-meal');
+    const appendEl = document.getElementById('summary-append');
+    
+    if (basalEl) basalEl.textContent = `기초 ${localBasal}`;
+    if (mealEl) mealEl.textContent = `식사 ${localMeal}`;
+    if (appendEl) appendEl.textContent = `추가 ${localAppend}`;
+  }
+
+  window.receiveBleHistoryLogs = function(logsJson) {
+    console.log("Webview received history logs:", logsJson);
+    try {
+      localStorage.setItem('history_logs', logsJson);
+      renderChart();
+    } catch(e) {
+      console.error(e);
+    }
+  };
+
   // DOM 완료 후 명시적 초기화 수행
   document.addEventListener('DOMContentLoaded', () => {
     chartDateRow = document.getElementById('chart-date-row');
@@ -539,6 +602,9 @@
     calNextMonth = document.getElementById('cal-next-month');
     calMonthYearText = document.getElementById('cal-month-year-text');
     calDaysGrid = document.getElementById('cal-days-grid');
+
+    // 요약 정보 로드
+    updateSummaryFromLocalStorage();
 
     // 캘린더 드롭다운 토글
     if (dateDisplayBtn) {
@@ -579,7 +645,7 @@
 
     if (refreshButton) {
       refreshButton.addEventListener('click', () => {
-        window.location.reload();
+        console.log("REQUEST_HISTORY_LOGS");
       });
     }
 

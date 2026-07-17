@@ -7,7 +7,7 @@
     const preventPaths = ['meal_injection', 'add_injection', 'dining', 'exercise'];
     const isPreventPath = preventPaths.some(path => currentPath.includes(path));
     
-    function showToast(message) {
+    window.showToast = function(message) {
       const toast = document.createElement('div');
       toast.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 bg-slate-800/90 text-white text-[13px] px-5 py-3 rounded-full shadow-lg z-[9999] transition-all duration-300 opacity-0 transform translate-y-2 pointer-events-none whitespace-nowrap font-medium';
       toast.innerText = message;
@@ -22,7 +22,7 @@
         toast.classList.add('opacity-0', 'translate-y-2');
         setTimeout(() => toast.remove(), 300);
       }, 2000);
-    }
+    };
     
     if (isInjecting && isPreventPath) {
       localStorage.setItem('showToastMsg', '주입 중에서 수행할 수 없습니다');
@@ -274,11 +274,11 @@
     },
   }
 </script>
-<style>.material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; } body { background-color: #f8fafa; height: 884px; width: 390px; margin: 0 auto; overflow: hidden; position: relative; }</style>
+<style>.material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; } body { background-color: #f8fafa; height: 100vh; max-width: 390px; width: 100%; margin: 0 auto; overflow: hidden; position: relative; }</style>
 </head>
-<body class="font-body-md text-on-background selection:bg-primary-fixed selection:text-on-primary-fixed border-x border-slate-100 px-4 mx-auto antialiased" style="background-color: rgb(248, 250, 250); height: 884px; width: 390px; margin: 0px auto; overflow: hidden; position: relative; -webkit-font-smoothing: antialiased;">
+<body class="font-body-md text-on-background selection:bg-primary-fixed selection:text-on-primary-fixed border-x border-slate-100 px-4 mx-auto antialiased" style="background-color: rgb(248, 250, 250); height: 100vh; max-width: 390px; width: 100%; margin: 0px auto; overflow: hidden; position: relative; -webkit-font-smoothing: antialiased;">
 <!-- TopAppBar -->
-<main class="h-full flex flex-col pb-4 items-center pt-[56px]">
+<main class="h-full flex flex-col pb-4 items-center pt-[16px]">
 <!-- Header -->
 <header class="shrink-0 w-full mt-3 mb-1">
 <h1 class="text-on-surface font-headline-md text-xl text-left tracking-tight font-medium"><span class="text-[#1a1c1c] font-bold text-2xl">추가 주입</span></h1>
@@ -333,18 +333,22 @@
 </div>
 <!-- Action Buttons -->
 <div class="flex shrink-0 flex-row w-full gap-3 pb-12 px-5 absolute bottom-0 left-0 right-0 bg-white">
-<button class="flex-1 bg-[#0a484a] text-white py-4 rounded-full font-bold text-lg hover:bg-teal-800 transition-colors focus:outline-none flex items-center justify-center gap-2" id="btn-inject"><span class="material-symbols-outlined text-lg" data-icon="bolt" style="font-variation-settings: &quot;FILL&quot; 1;">bolt</span>추가주입</button>
-<button class="flex-1 text-[#121d1f] py-4 rounded-full font-bold text-lg hover:bg-gray-300 transition-colors focus:outline-none flex items-center justify-center" id="btn-close" style="background-color: rgb(236, 238, 238); border-width: medium; border-style: none; border-color: currentcolor; border-image: initial;">닫기</button>
+<button class="flex-1 bg-[#0a484a] text-white py-4 rounded-full font-headline-md text-[15px] font-medium hover:bg-teal-800 transition-colors focus:outline-none flex items-center justify-center gap-2" id="btn-inject"><span class="material-symbols-outlined text-lg" data-icon="bolt" style="font-variation-settings: &quot;FILL&quot; 1;">bolt</span>추가주입</button>
+<button class="flex-1 text-[#121d1f] py-4 rounded-full font-headline-md text-[15px] font-medium hover:bg-gray-300 transition-colors focus:outline-none flex items-center justify-center" id="btn-close" style="background-color: rgb(236, 238, 238); border-width: medium; border-style: none; border-color: currentcolor; border-image: initial;">닫기</button>
 </div>
 </div>
 </main>
-<style>.material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; } body { background-color: #f8fafa; height: 884px; width: 390px; margin: 0 auto; overflow: hidden; position: relative; }</style>
+<style>.material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; } body { background-color: #f8fafa; height: 100vh; max-width: 390px; width: 100%; margin: 0 auto; overflow: hidden; position: relative; }</style>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
+        const localBasal = localStorage.getItem('basalSum');
+        const localMeal = localStorage.getItem('mealSum');
+        const localAppend = localStorage.getItem('appendSum');
+
         const bleState = {
-            basal: 12.50,
-            meal: 8.25,
-            add: 2.00
+            basal: localBasal && localBasal !== '---' ? parseFloat(localBasal) : 0.00,
+            meal: localMeal && localMeal !== '---' ? parseFloat(localMeal) : 0.00,
+            add: localAppend && localAppend !== '---' ? parseFloat(localAppend) : 0.00
         };
 
         const updateSummaryUI = () => {
@@ -373,13 +377,34 @@
 
         btnInject.addEventListener('click', () => {
             const finalValue = getFinalValue();
-            const payload = encodeURIComponent(JSON.stringify({ value: finalValue }));
+            
+            btnInject.disabled = true;
+            btnInject.classList.add('opacity-70', 'cursor-not-allowed');
 
-            goToDashboard({
-                modal: 'request',
-                action: 'extra',
-                payload
-            });
+            console.log(`BLE 명령 전송: SEND_ADD_INJECTION_COMMAND: ${finalValue} U`);
+
+            window.onInjectionApproved = () => {
+                btnInject.disabled = false;
+                btnInject.classList.remove('opacity-70', 'cursor-not-allowed');
+                localStorage.setItem('isInjecting', 'true');
+                localStorage.setItem('injectingEndTime', (Date.now() + 5000).toString());
+                const payload = encodeURIComponent(JSON.stringify({ value: finalValue }));
+                goToDashboard({
+                    modal: 'request',
+                    action: 'extra',
+                    payload
+                });
+            };
+
+            window.onInjectionRejected = () => {
+                btnInject.disabled = false;
+                btnInject.classList.remove('opacity-70', 'cursor-not-allowed');
+                if (typeof showToast === 'function') {
+                    showToast('주입 요청을 취소합니다.');
+                } else if (typeof window.showToast === 'function') {
+                    window.showToast('주입 요청을 취소합니다.');
+                }
+            };
         });
 
         btnClose.addEventListener('click', () => {

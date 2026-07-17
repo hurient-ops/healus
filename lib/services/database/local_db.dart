@@ -65,6 +65,7 @@ abstract class PumpDatabase {
   Future<void> insertLogsBulk(List<PumpLogModel> logs);
   Future<List<PumpLogModel>> getAllLogs();
   Future<void> clearLogs();
+  Future<void> keepOnlyLast180Days();
 }
 
 /// 실제 기기 구동용 SQLite DB 구현체
@@ -93,7 +94,8 @@ class SqflitePumpDatabase implements PumpDatabase {
             afternoon_total REAL,
             evening_total REAL,
             append_total REAL,
-            created_at TEXT
+            created_at TEXT,
+            UNIQUE(month, day) ON CONFLICT REPLACE
           )
         ''');
       },
@@ -139,5 +141,24 @@ class SqflitePumpDatabase implements PumpDatabase {
     final db = _db;
     if (db == null) throw StateError("데이터베이스가 초기화되지 않았습니다.");
     await db.delete('pump_logs');
+  }
+
+  @override
+  Future<void> keepOnlyLast180Days() async {
+    final db = _db;
+    if (db == null) throw StateError("데이터베이스가 초기화되지 않았습니다.");
+    await db.execute('''
+      DELETE FROM pump_logs 
+      WHERE id NOT IN (
+        SELECT id FROM pump_logs 
+        WHERE (month * 100 + day) IN (
+          SELECT (month * 100 + day) as date_val 
+          FROM pump_logs 
+          GROUP BY date_val 
+          ORDER BY date_val DESC 
+          LIMIT 180
+        )
+      )
+    ''');
   }
 }

@@ -1,0 +1,10 @@
+{
+  "name": "healus-ts-session",
+  "version": "1.0.0",
+  "description": "TS support for healus sessions",
+  "private": true,
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}

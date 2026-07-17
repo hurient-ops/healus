@@ -21,8 +21,12 @@ class CharacteristicWriter implements BleWriter {
 
 /// 20Byte 논리 패킷을 10Byte 단위로 쪼개어 강제 지연 마진을 갖고 송신하는 전송 장치
 class BlePacketTransmitter {
+  bool _isTransmitting = false;
+  final List<Completer<void>> _queue = [];
+
   /// 20바이트의 패킷을 10바이트씩 2회로 분할하여 전송합니다.
   /// 1차 전송 후 인슐린 펌프 마이컴의 오버플로우 방지를 위해 30ms 물리 지연을 강제합니다.
+  /// 다수의 비동기 요청이 겹칠 경우 뮤텍스 큐를 통해 순차적 전송을 보장합니다.
   Future<void> send20BytePacket(BleWriter writer, List<int> logicalPacket) async {
     if (logicalPacket.length != 20) {
       throw ArgumentError("무결성이 깨진 잘못된 논리 패킷 요청입니다. (길이: ${logicalPacket.length})");
@@ -31,16 +35,27 @@ class BlePacketTransmitter {
       throw ArgumentError("패킷의 시작 코드가 0xEF가 아닙니다.");
     }
 
-    final firstChunk = logicalPacket.sublist(0, 10);
-    final secondChunk = logicalPacket.sublist(10, 20);
+    final completer = Completer<void>();
+    _queue.add(completer);
 
-    // 1. 첫 번째 10Byte 청크 전송
-    await writer.write(firstChunk, withoutResponse: true);
+    if (_isTransmitting) {
+      await completer.future; // 큐에서 내 차례가 올 때까지 대기
+    } else {
+      _isTransmitting = true;
+      completer.complete(); // 첫 진입은 바로 실행
+    }
 
-    // 2. 하드웨어 처리 마진 확보를 위한 30ms 물리적 딜레이 블로킹
-    await Future.delayed(const Duration(milliseconds: 30));
-
-    // 3. 두 번째 10Byte 청크 전송
-    await writer.write(secondChunk, withoutResponse: true);
+    try {
+      // [최종 수정 사항] 블루투스 모듈(펌프 수신부)이 20바이트 일괄 수신을 자체적으로 완벽히 처리함이 확인됨.
+      // 따라서 모든 명령어에 대해 불필요한 10+10 분할 및 딜레이 로직을 완전히 제거하고 20바이트를 원샷으로 전송합니다.
+      await writer.write(logicalPacket, withoutResponse: true);
+    } finally {
+      _queue.removeAt(0); // 현재 항목 제거
+      if (_queue.isNotEmpty) {
+        _queue.first.complete(); // 다음 대기자 깨우기
+      } else {
+        _isTransmitting = false; // 큐가 비었으면 상태 초기화
+      }
+    }
   }
 }

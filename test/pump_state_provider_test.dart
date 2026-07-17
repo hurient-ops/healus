@@ -126,5 +126,47 @@ void main() {
       expect(updatedState.connectionState, PumpState.errorPause);
       expect(updatedState.isPumpInjecting, false); // 안전을 위해 주입 락 해제 및 정지
     });
+
+    test('BT_NEW_APP_PASSWD_IND (0x42) 및 BT_PRS_APP_PASSWD_RES (0x3D) 수신 시 공통 장소(전역 상태)의 비밀번호를 업데이트한다', () {
+      final notifier = container.read(pumpStateProvider.notifier);
+
+      // 0x42 (신규 패스워드) 패킷 수신 테스트
+      final newPasswdPacket = List<int>.filled(20, 0);
+      newPasswdPacket[0] = kStartCode;
+      newPasswdPacket[1] = Opcodes.btNewAppPasswdInd; // 0x42
+      newPasswdPacket[2] = 6; // dataLen
+      
+      // 원시 숫자 123456 : [0x01, 0x02, 0x03, 0x04, 0x05, 0x06]
+      newPasswdPacket[3] = 0x01;
+      newPasswdPacket[4] = 0x02;
+      newPasswdPacket[5] = 0x03;
+      newPasswdPacket[6] = 0x04;
+      newPasswdPacket[7] = 0x05;
+      newPasswdPacket[8] = 0x06;
+
+      notifier.handleIncomingPacket(newPasswdPacket);
+
+      var updatedState = container.read(pumpStateProvider);
+      expect(updatedState.password, "123456");
+
+      // 0x3D (현재 패스워드 전달) 패킷 수신 테스트
+      final prsPasswdPacket = List<int>.filled(20, 0);
+      prsPasswdPacket[0] = kStartCode;
+      prsPasswdPacket[1] = Opcodes.btPrsAppPasswdRes; // 0x3D
+      prsPasswdPacket[2] = 6; // dataLen
+      
+      // 원시 숫자 654321 : [0x06, 0x05, 0x04, 0x03, 0x02, 0x01]
+      prsPasswdPacket[3] = 0x06;
+      prsPasswdPacket[4] = 0x05;
+      prsPasswdPacket[5] = 0x04;
+      prsPasswdPacket[6] = 0x03;
+      prsPasswdPacket[7] = 0x02;
+      prsPasswdPacket[8] = 0x01;
+
+      notifier.handleIncomingPacket(prsPasswdPacket);
+
+      updatedState = container.read(pumpStateProvider);
+      expect(updatedState.password, "654321");
+    });
   });
 }

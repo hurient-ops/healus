@@ -9,7 +9,7 @@
     const preventPaths = ['meal_injection', 'add_injection', 'dining', 'exercise'];
     const isPreventPath = preventPaths.some(path => currentPath.includes(path));
     
-    function showToast(message) {
+    window.showToast = function(message) {
       const toast = document.createElement('div');
       toast.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 bg-slate-800/90 text-white text-[13px] px-5 py-3 rounded-full shadow-lg z-[9999] transition-all duration-300 opacity-0 transform translate-y-2 pointer-events-none whitespace-nowrap font-medium';
       toast.innerText = message;
@@ -24,7 +24,7 @@
         toast.classList.add('opacity-0', 'translate-y-2');
         setTimeout(() => toast.remove(), 300);
       }, 2000);
-    }
+    };
     
     if (isInjecting && isPreventPath) {
       localStorage.setItem('showToastMsg', '주입 중에서 수행할 수 없습니다');
@@ -117,8 +117,8 @@
         }
         /* Lock vertical dimension to standard dashboard height */
         body {
-            height: 852px;
-            width: 393px;
+            height: 100vh;
+            max-width: 390px;
             margin: 0 auto;
             position: relative;
             overflow: hidden;
@@ -129,7 +129,7 @@
 <script src="https://unpkg.com/@remix-run/router@1.15.3/dist/router.umd.min.js"></script>
 <script src="https://unpkg.com/react-router@6.22.3/dist/umd/react-router.development.js"></script>
 <script src="https://unpkg.com/react-router-dom@6.22.3/dist/umd/react-router-dom.development.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.22.20/babel.min.js"></script>
 </head>
 <body class="bg-background font-body-md text-on-background flex flex-col mx-auto" data-mode="connect">
 <div class="flex flex-col h-full w-full" id="root"></div>
@@ -158,6 +158,7 @@
     const [breakfast, setBreakfast] = useState('1.00');
     const [lunch, setLunch] = useState('1.00');
     const [dinner, setDinner] = useState('1.00');
+    const [isWaiting, setIsWaiting] = useState(false);
 
     React.useEffect(() => {
       try {
@@ -174,13 +175,30 @@
     }, []);
 
     const handleInjectClick = () => {
-      const payload = encodeURIComponent(JSON.stringify({
-        breakfast: breakfast,
-        lunch: lunch,
-        dinner: dinner
-      }));
+      setIsWaiting(true);
+      console.log(`BLE 명령 전송: SEND_MEAL_INJECTION_COMMAND: ${breakfast || '1.00'} U 아침, ${lunch || '1.00'} U 점심, ${dinner || '1.00'} U 저녁`);
+      
+      window.onInjectionApproved = () => {
+        setIsWaiting(false);
+        localStorage.setItem('isInjecting', 'true');
+        localStorage.setItem('injectingEndTime', (Date.now() + 5000).toString());
+        
+        const payload = encodeURIComponent(JSON.stringify({
+          breakfast: breakfast,
+          lunch: lunch,
+          dinner: dinner
+        }));
+        window.location.href = `../dashboard/code.html?modal=request&action=meal&payload=${payload}`;
+      };
 
-      window.location.href = `../dashboard/code.html?modal=request&action=meal&payload=${payload}`;
+      window.onInjectionRejected = () => {
+        setIsWaiting(false);
+        if (typeof showToast === 'function') {
+          showToast('주입 요청을 취소합니다.');
+        } else if (typeof window.showToast === 'function') {
+          window.showToast('주입 요청을 취소합니다.');
+        }
+      };
     };
 
     const handleCloseClick = () => {
@@ -190,7 +208,7 @@
     return (
       <React.Fragment>
         {/* TopAppBar */}
-        <div className="h-14 shrink-0"></div>
+        <div className="h-4 shrink-0"></div>
         
         {/* Main Scrollable Content */}
         <main className="flex-1 overflow-y-auto px-margin-mobile pt-3 pb-1">
@@ -200,7 +218,7 @@
           </section>
           
           {/* Instruction Info Box */}
-          <section className="mb-5">
+          <section className="mb-3">
             <div className="bg-[#F2F7F7] border border-[#E0E7E7] rounded-[16px] p-4 flex gap-2">
               <div className="flex gap-2 w-full">
                 <span className="material-symbols-outlined text-[#2A6062] text-xl mt-0.5" data-icon="info">info</span>
@@ -208,10 +226,9 @@
                   <div className="flex items-center mb-1">
                     <p className="font-label-sm text-[13px] text-[#2A6062] font-semibold">안전 수칙</p>
                   </div>
-                  <p className="font-body-md text-[13px] text-on-surface-variant leading-[1.6]">
+                  <p className="font-body-md text-[13px] text-on-surface-variant leading-[1.6] break-keep">
                     식사주입은 설정한 인슐린 단위수(unit) 만큼 주입<br />
-                    - 식사 주입 1회 주입 완료 후 <span className="font-bold text-[#2A6062]">"2시간, 3시간"</span> 주기로 <br />
-                    제한하여 주입가능 (과다주입, 저혈당 쇼크 방지)<br />
+                    - 식사 주입 1회 주입 완료 후 <span className="font-bold text-[#2A6062]">"2시간, 3시간"</span> 주기로 제한하여 주입가능 (과다주입, 저혈당 쇼크 방지)<br />
                     - 식사 설정에 설정된 단위수를 식사 주입 메뉴로 이동, 수정하여 가감된 단위수를 주입할 수 있음
                   </p>
                 </div>
@@ -220,7 +237,7 @@
           </section>
 
           {/* Input Fields */}
-          <div className="flex flex-col gap-3 mb-6">
+          <div className="flex flex-col gap-2 mb-3">
             {/* Breakfast Card */}
             <div className="bg-white border border-[#E0E7E7] rounded-[16px] p-4 flex items-center gap-4">
               <div className="flex items-center gap-2 w-20 shrink-0">
@@ -275,11 +292,12 @@
         </main>
         
         {/* Fixed Bottom Actions */}
-        <footer className="shrink-0 bg-background ios-bottom-padding pt-4 pb-8">
+        <footer className="shrink-0 bg-background ios-bottom-padding pt-2 pb-4">
           <div className="px-margin-mobile flex gap-3 flex-row">
             <button 
               onClick={handleInjectClick}
-              className="w-full bg-[#2A6062] text-white py-4 rounded-full font-headline-md text-[15px] font-medium active:scale-[0.98] transition-transform flex items-center justify-center flex-1"
+              disabled={isWaiting}
+              className={`w-full ${isWaiting ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#2A6062] active:scale-[0.98]'} text-white py-4 rounded-full font-headline-md text-[15px] font-medium transition-transform flex items-center justify-center flex-1`}
             >
               주입하기
             </button>

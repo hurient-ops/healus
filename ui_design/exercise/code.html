@@ -7,7 +7,7 @@
     const preventPaths = ['meal_injection', 'add_injection', 'dining', 'exercise'];
     const isPreventPath = preventPaths.some(path => currentPath.includes(path));
     
-    function showToast(message) {
+    window.showToast = function(message) {
       const toast = document.createElement('div');
       toast.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 bg-slate-800/90 text-white text-[13px] px-5 py-3 rounded-full shadow-lg z-[9999] transition-all duration-300 opacity-0 transform translate-y-2 pointer-events-none whitespace-nowrap font-medium';
       toast.innerText = message;
@@ -22,7 +22,7 @@
         toast.classList.add('opacity-0', 'translate-y-2');
         setTimeout(() => toast.remove(), 300);
       }, 2000);
-    }
+    };
     
     if (isInjecting && isPreventPath) {
       localStorage.setItem('showToastMsg', '주입 중에서 수행할 수 없습니다');
@@ -117,7 +117,7 @@
     .mobile-container {
       width: 100%;
       max-width: 390px;
-      min-height: 884px;
+      height: 100vh;
       background-color: #ffffff;
       box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
       position: relative;
@@ -137,12 +137,12 @@
 <div class="mobile-container overflow-hidden">
 <!-- BEGIN: Header -->
 <!-- Simulating 2 lines empty space above heading -->
-<div class="pt-8 pb-3 px-5 mt-6">
+<div class="pt-4 pb-3 px-5 mt-2">
 <h1 class="text-2xl font-bold text-gray-800">운동 적용</h1>
 </div>
 <!-- END: Header -->
 <!-- BEGIN: Main Content -->
-<main class="flex-1 px-5 overflow-y-auto pb-24 flex flex-col">
+<main class="flex-1 px-5 overflow-y-auto pb-[80px] flex flex-col">
 <!-- Info Box -->
 <div class="bg-gray-50 rounded-xl p-4 border border-gray-100 shadow-sm">
 <div class="flex items-start gap-2 mb-2">
@@ -206,11 +206,11 @@
 </main>
 <!-- END: Main Content -->
 <!-- BEGIN: Bottom Action Buttons -->
-<div class="absolute bottom-0 left-0 right-0 bg-white flex gap-3 pb-12 px-5">
-<button class="flex-1 bg-[#1A6D6D] text-white py-4 rounded-full font-bold text-lg hover:bg-teal-800 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2" type="button">
+<div class="absolute bottom-0 left-0 right-0 bg-white flex gap-3 pb-4 pt-2 px-5 z-10">
+<button class="flex-1 bg-[#1A6D6D] text-white py-4 rounded-full font-headline-md text-[15px] font-medium hover:bg-teal-800 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2" type="button">
         운동적용
       </button>
-<button class="flex-1 bg-gray-200 text-gray-800 py-4 rounded-full font-bold text-lg hover:bg-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2" type="button">
+<button class="flex-1 bg-gray-200 text-gray-800 py-4 rounded-full font-headline-md text-[15px] font-medium hover:bg-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2" type="button">
         닫기
       </button>
 </div>
@@ -247,13 +247,34 @@
       applyBtn.addEventListener('click', () => {
         const time = timeSelect.value;
         const reduction = reductionSelect.value;
-        const payload = encodeURIComponent(JSON.stringify({ time, reduction }));
+        
+        applyBtn.disabled = true;
+        applyBtn.classList.add('opacity-70', 'cursor-not-allowed');
 
-        goToDashboard({
-          modal: 'request',
-          action: 'exercise',
-          payload
-        });
+        console.log(`BLE 명령 전송: SEND_EXERCISE_COMMAND: ${time}시간, ${reduction}% 감소`);
+
+        window.onInjectionApproved = () => {
+          applyBtn.disabled = false;
+          applyBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+          localStorage.setItem('isInjecting', 'true');
+          localStorage.setItem('injectingEndTime', (Date.now() + 5000).toString());
+          const payload = encodeURIComponent(JSON.stringify({ time, reduction }));
+          goToDashboard({
+            modal: 'request',
+            action: 'exercise',
+            payload
+          });
+        };
+
+        window.onInjectionRejected = () => {
+          applyBtn.disabled = false;
+          applyBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+          if (typeof showToast === 'function') {
+            showToast('주입 요청을 취소합니다.');
+          } else if (typeof window.showToast === 'function') {
+            window.showToast('주입 요청을 취소합니다.');
+          }
+        };
       });
 
       closeBtn.addEventListener('click', () => {
