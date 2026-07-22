@@ -162,37 +162,56 @@ class InjectController extends StateNotifier<List<List<int>>> {
         final ackCompleter = Completer<void>();
         StreamSubscription? sub;
         
+        bool received00 = false;
+        bool receivedExpected = false;
+        
         sub = bleService.receivedPacketsStream.listen((packet) {
+          // 0x00 (BT_MSG_RES) 응답 확인
+          if (packet[1] == Opcodes.btMsgRes && packet[3] == currentPacket[1]) {
+            if (packet[4] == 0x00) {
+              received00 = true;
+            } else {
+              // 에러 응답 수신 시 무한 대기 방지를 위해 큐 즉시 해제
+              if (!ackCompleter.isCompleted) {
+                print("[WARN] Received error 0x${packet[4].toRadixString(16)} for opcode 0x${currentPacket[1].toRadixString(16)}");
+                ackCompleter.complete();
+              }
+              return;
+            }
+          }
+          
           if (packet[1] == expectedOpcode) {
             if (expectedOpcode == Opcodes.btBaseValueRes) {
               // 기초 설정 값(0x2F -> 0x30) 요청의 경우 3번째 byte(time_param)가 0x03일 때 완료 처리
               if (packet.length >= 4 && packet[3] == 0x03) {
-                if (!ackCompleter.isCompleted) {
-                  ackCompleter.complete();
-                }
+                receivedExpected = true;
               }
             } else {
-              if (!ackCompleter.isCompleted) {
-                ackCompleter.complete();
-              }
+              receivedExpected = true;
             }
-          } else if (expectedOpcode != Opcodes.btMsgRes && packet[1] == Opcodes.btMsgRes && packet[3] == currentPacket[1]) {
-            // Error response case: received 0x00 instead of specific data response, and it contains error code
-            if (packet[4] != 0x00) {
-              if (!ackCompleter.isCompleted) {
-                // Not throwing error, just completing to release queue
-                print("[WARN] Received error 0x${packet[4].toRadixString(16)} for opcode 0x${currentPacket[1].toRadixString(16)}");
-                ackCompleter.complete();
-              }
-            }
+          }
+          
+          // 완료 조건 검사
+          bool conditionMet = false;
+          if (currentPacket[1] == Opcodes.btTimeBaseSetReq) {
+            // [수정사항] 0x0F의 경우 반드시 0x00(정상)과 0x12(설정응답)를 모두 수신해야 완료로 판단함
+            conditionMet = received00 && receivedExpected;
+          } else {
+            conditionMet = receivedExpected;
+          }
+
+          if (conditionMet && !ackCompleter.isCompleted) {
+            ackCompleter.complete();
           }
         });
 
         await bleService.sendPacket(currentPacket);
         
-        // Timeout 적용 대기 (최대 3초, 펌프 처리 마진 포함)
+        // Timeout 적용 대기 (기초설정 0x0F는 플래시 기록 마진 등을 위해 10초, 그 외 모든 일반 명령어는 8초로 넉넉하게 연장)
         final bypassHold = _ref.read(timeoutHoldProvider);
-        final waitTimeout = bypassHold ? const Duration(days: 365) : const Duration(seconds: 3);
+        final waitTimeout = bypassHold 
+            ? const Duration(days: 365) 
+            : (currentPacket[1] == Opcodes.btTimeBaseSetReq ? const Duration(seconds: 10) : const Duration(seconds: 8));
         
         try {
           await ackCompleter.future.timeout(waitTimeout);
