@@ -4,6 +4,8 @@ import '../ble/opcodes.dart';
 import '../ble/packet_parser.dart';
 import '../inject/inject_controller.dart';
 import '../database/local_db.dart';
+import '../../globals.dart';
+import 'package:flutter/material.dart';
 
 /// 24시간 기초 설정 및 이력 데이터 동기화 상태 모델
 class BasalSyncState {
@@ -58,6 +60,31 @@ class BasalSyncController extends StateNotifier<BasalSyncState> {
   final PumpDatabase _db;
 
   final List<PumpLogModel> _tempLogs = [];
+
+  Timer? _watchdogTimer;
+
+  /// 벌크 전송 무한 로딩 방지를 위한 워치독 타이머 (3초)
+  void _startOrResetWatchdog() {
+    _watchdogTimer?.cancel();
+    _watchdogTimer = Timer(const Duration(seconds: 3), () {
+      if (state.isSyncingLogs) {
+        state = state.copyWith(isSyncingLogs: false);
+        _tempLogs.clear();
+        rootScaffoldMessengerKey.currentState?.showSnackBar(
+          const SnackBar(
+            content: Text('통신 지연으로 동기화가 중단되었습니다'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+        print("[DEBUG] basal_sync_controller: 3초 타임아웃! 대량 전송 강제 종료");
+      }
+    });
+  }
+
+  void _cancelWatchdog() {
+    _watchdogTimer?.cancel();
+    _watchdogTimer = null;
+  }
 
   BasalSyncController(this._ref, this._db) : super(BasalSyncState());
 
@@ -215,12 +242,14 @@ class BasalSyncController extends StateNotifier<BasalSyncState> {
           isSyncingLogs: true,
           hasReceivedRealLogs: isRealPacket ? true : state.hasReceivedRealLogs,
         );
+        _startOrResetWatchdog();
         break;
 
       case Opcodes.btDataEndInd:
         print("[DEBUG] basal_sync_controller: btDataEndInd received, isSyncingLogs=${state.isSyncingLogs}, tempLogsCount=${_tempLogs.length}");
         // 이력 대량 전송 종료 알림 수신 -> 로컬 DB에 벌크 인서트 후 화면 데이터 로드
         if (state.isSyncingLogs) {
+          _cancelWatchdog();
           await _db.insertLogsBulk(_tempLogs);
           await _db.keepOnlyLast180Days();
           print("[DEBUG] basal_sync_controller: insertLogsBulk completed");
@@ -232,9 +261,10 @@ class BasalSyncController extends StateNotifier<BasalSyncState> {
         }
         break;
 
-      default:
-        // 이력 데이터 수집 모드인 경우 14Byte 이력 응답 데이터 파싱 (헤더 존재 시 하위호환)
+      case Opcodes.btLogDataInd:
         if (state.isSyncingLogs && dataLen == 14) {
+          _startOrResetWatchdog();
+          
           final int month = packet[3];
           final int day = packet[4];
 
@@ -260,6 +290,9 @@ class BasalSyncController extends StateNotifier<BasalSyncState> {
 
           _tempLogs.add(log);
         }
+        break;
+
+      default:
         break;
     }
   }

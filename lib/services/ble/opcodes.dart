@@ -38,6 +38,7 @@ class Opcodes {
   static const int btLogInjQntReq = 0x1E; // 금일 주입량 정보 요청
   static const int btLogInjQntInd = 0x1F; // 금일 주입량 정보 응답
   static const int btLogInjSet1Ind = 0x20; // 현 주입 설정이력 정보1
+  static const int btLogDataInd = 0x82; // 이력 데이터 전송 본문
   static const int btExerciseInjStartInd = 0x29; // 운동모드 시작 알림
   static const int btExerciseInjStopInd = 0x2A; // 운동모드 종료 알림
   static const int btReceptionInjStartInd = 0x2B; // 회식모드 시작 알림
