@@ -1,19 +1,30 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:connectivity_plus/connectivity_plus.dart';
 import '../../config/cloud_config.dart';
 import '../database/local_db.dart'; // For PumpLogModel
+import '../database/sync_queue_db.dart'; // For SyncQueueDb
 
 class ApiClient {
   static final ApiClient _instance = ApiClient._internal();
   factory ApiClient() => _instance;
-  ApiClient._internal();
+  
+  final SyncQueueDb _syncQueueDb = SyncQueueDb();
+  bool _isSyncing = false;
+  
+  ApiClient._internal() {
+    _initConnectivity();
+  }
 
-  // Raw Packet Buffering
-  final List<Map<String, dynamic>> _rawPacketBuffer = [];
-  Timer? _rawPacketTimer;
-  final int _maxBufferSize = 10;
-  final Duration _flushInterval = const Duration(seconds: 3);
+  void _initConnectivity() {
+    Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> results) {
+      if (!results.contains(ConnectivityResult.none)) {
+        // Network restored! Try to flush the offline queue.
+        _flushOfflineQueue();
+      }
+    });
+  }
 
   /// 펌프 이력 데이터(Bulk) 서버로 전송
   Future<void> postBulkLogs(List<PumpLogModel> logs, String deviceMac) async {
@@ -49,38 +60,39 @@ class ApiClient {
         print('[ApiClient] Failed to post logs: ${response.statusCode}');
       }
     } catch (e) {
-      print('[ApiClient] Exception posting bulk logs: $e');
+      print('[ApiClient] Exception posting bulk logs (Backend/Network Down): $e');
     }
   }
 
-  /// 원시 패킷(Raw Packet) 버퍼에 추가 (버퍼 꽉 차면 전송)
-  void bufferRawPacket(List<int> packet, String direction, String deviceMac) {
+  /// 원시 패킷(Raw Packet) 오프라인 큐에 저장 후 전송 트리거
+  Future<void> bufferRawPacket(List<int> packet, String direction, String deviceMac) async {
     if (!CloudConfig.enableCloudSync) return;
 
-    _rawPacketBuffer.add({
-      "device_mac": deviceMac,
-      "direction": direction, // 'TX' or 'RX'
-      "payload_hex": packet.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' '),
-      "timestamp": DateTime.now().toIso8601String(),
-    });
+    final payloadHex = packet.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ');
+    final timestamp = DateTime.now().toIso8601String();
 
-    if (_rawPacketBuffer.length >= _maxBufferSize) {
-      _flushRawPackets();
-    } else {
-      _rawPacketTimer?.cancel();
-      _rawPacketTimer = Timer(_flushInterval, _flushRawPackets);
-    }
+    // 1. 메모리가 아닌 무조건 로컬 SQLite 큐에 먼저 저장 (Offline-First)
+    await _syncQueueDb.init();
+    await _syncQueueDb.insertPacket(deviceMac, direction, payloadHex, timestamp);
+
+    // 2. 백그라운드 동기화 시도
+    _flushOfflineQueue();
   }
 
-  /// 버퍼에 모인 패킷들을 서버로 일괄 전송
-  Future<void> _flushRawPackets() async {
-    if (_rawPacketBuffer.isEmpty) return;
-
-    final packetsToSend = List<Map<String, dynamic>>.from(_rawPacketBuffer);
-    _rawPacketBuffer.clear();
-    _rawPacketTimer?.cancel();
+  /// 로컬 큐에 쌓인 패킷들을 서버로 일괄 전송 (재시도 로직 포함)
+  Future<void> _flushOfflineQueue() async {
+    if (_isSyncing) return;
+    _isSyncing = true;
 
     try {
+      await _syncQueueDb.init();
+      final packetsToSend = await _syncQueueDb.getUnsyncedPackets(limit: 50);
+      
+      if (packetsToSend.isEmpty) {
+        _isSyncing = false;
+        return;
+      }
+
       final url = Uri.parse('${CloudConfig.serverBaseUrl}/api/raw_logs');
       final payload = {"packets": packetsToSend};
 
@@ -88,15 +100,26 @@ class ApiClient {
         url,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(payload),
-      );
+      ).timeout(const Duration(seconds: 10)); // 10초 타임아웃 추가
 
       if (response.statusCode == 200) {
-        print('[ApiClient] Successfully posted ${packetsToSend.length} raw packets.');
+        print('[ApiClient] Successfully posted ${packetsToSend.length} queued packets.');
+        // 3. 서버 전송 성공 시 큐에서 완전 삭제
+        final idsToDelete = packetsToSend.map<int>((p) => p['id'] as int).toList();
+        await _syncQueueDb.deletePackets(idsToDelete);
+        
+        // 남아있는 패킷이 더 있을 수 있으므로 재귀 호출
+        _isSyncing = false;
+        if (packetsToSend.length == 50) {
+          _flushOfflineQueue();
+        }
       } else {
-        print('[ApiClient] Failed to post raw packets: ${response.statusCode}');
+        print('[ApiClient] Server returned error: ${response.statusCode}. Keeping data in queue.');
       }
     } catch (e) {
-      print('[ApiClient] Exception posting raw packets: $e');
+      print('[ApiClient] Network/Server unavailable: $e. Packets safely kept in local queue.');
+    } finally {
+      _isSyncing = false;
     }
   }
 }
