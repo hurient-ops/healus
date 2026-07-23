@@ -207,11 +207,11 @@ class InjectController extends StateNotifier<List<List<int>>> {
 
         await bleService.sendPacket(currentPacket);
         
-        // Timeout 적용 대기 (기초설정 0x0F는 플래시 기록 마진 등을 위해 10초, 그 외 모든 일반 명령어는 8초로 넉넉하게 연장)
+        // Timeout 적용 대기 (기초설정 0x0F는 플래시 기록 마진 등을 위해 20초, 그 외 모든 일반 명령어는 15초로 넉넉하게 연장)
         final bypassHold = _ref.read(timeoutHoldProvider);
         final waitTimeout = bypassHold 
             ? const Duration(days: 365) 
-            : (currentPacket[1] == Opcodes.btTimeBaseSetReq ? const Duration(seconds: 10) : const Duration(seconds: 8));
+            : (currentPacket[1] == Opcodes.btTimeBaseSetReq ? const Duration(seconds: 20) : const Duration(seconds: 15));
         
         try {
           await ackCompleter.future.timeout(waitTimeout);
