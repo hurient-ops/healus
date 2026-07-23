@@ -4,6 +4,7 @@ import 'ble_service_interface.dart';
 import 'ble_packet_assembler.dart';
 import 'ble_packet_transmitter.dart';
 import 'opcodes.dart';
+import '../api/cloud_sync_service.dart';
 
 /// 실제 인슐린 펌프 디바이스와 통신하는 물리 BLE 서비스 구현체
 class HardwareBleService implements BleService {
@@ -39,6 +40,7 @@ class HardwareBleService implements BleService {
     );
     _assembler.packetStream.listen((packet) {
       _receivedPacketsController.add(packet);
+      CloudSyncService().emitRxPacket(packet, deviceMac: _device?.remoteId.str ?? "UNKNOWN");
     });
   }
 

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'ble_service_interface.dart';
 import 'opcodes.dart';
 import 'packet_parser.dart';
+import '../api/cloud_sync_service.dart';
 
 /// 기기 없이 시나리오 테스트를 수행하는 가상 Mock BLE 서비스 구현체
 class MockBleService implements BleService {
@@ -325,6 +326,7 @@ class MockBleService implements BleService {
           PacketParser.writeUint16(logBytes, 12, (0.00 * 100).round()); // 0.00U (추가)
           
           _receivedPacketsController.add(logBytes);
+          CloudSyncService().emitRxPacket(logBytes, deviceMac: "MOCK_DEVICE_MAC");
         }
 
         // 3. 대량 데이터 전송 종료
@@ -364,6 +366,8 @@ class MockBleService implements BleService {
       packet[3 + i] = data[i];
     }
     _receivedPacketsController.add(packet);
+    // [Cloud Integration] RX 방송
+    CloudSyncService().emitRxPacket(packet, deviceMac: "MOCK_DEVICE_MAC");
   }
 
   // === [TEST MODE ONLY] ===

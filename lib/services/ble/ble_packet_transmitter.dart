@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'opcodes.dart';
+import '../api/cloud_sync_service.dart';
 
 /// BLE 쓰기 동작을 추상화한 인터페이스 (단위 테스트의 용이성을 확보)
 abstract class BleWriter {
@@ -49,6 +50,8 @@ class BlePacketTransmitter {
       // [최종 수정 사항] 블루투스 모듈(펌프 수신부)이 20바이트 일괄 수신을 자체적으로 완벽히 처리함이 확인됨.
       // 따라서 모든 명령어에 대해 불필요한 10+10 분할 및 딜레이 로직을 완전히 제거하고 20바이트를 원샷으로 전송합니다.
       await writer.write(logicalPacket, withoutResponse: true);
+      // [Cloud Integration] 원시 패킷 관찰자(Observer)에게 TX 방송 (비결합형 구조)
+      CloudSyncService().emitTxPacket(logicalPacket);
     } finally {
       _queue.removeAt(0); // 현재 항목 제거
       if (_queue.isNotEmpty) {

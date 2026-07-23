@@ -6,6 +6,7 @@ import '../inject/inject_controller.dart';
 import '../database/local_db.dart';
 import '../../globals.dart';
 import 'package:flutter/material.dart';
+import '../api/api_client.dart';
 
 /// 24시간 기초 설정 및 이력 데이터 동기화 상태 모델
 class BasalSyncState {
@@ -253,6 +254,10 @@ class BasalSyncController extends StateNotifier<BasalSyncState> {
           await _db.insertLogsBulk(_tempLogs);
           await _db.keepOnlyLast180Days();
           print("[DEBUG] basal_sync_controller: insertLogsBulk completed");
+
+          // [Cloud Integration] 백엔드로 이력 데이터 복제 전송 (에러가 나도 앱 진행에 영향 없도록 비동기 처리)
+          ApiClient().postBulkLogs(List.from(_tempLogs), "DEVICE_MAC_TBD");
+
           _tempLogs.clear();
           await reloadLogsFromDb();
           state = state.copyWith(
