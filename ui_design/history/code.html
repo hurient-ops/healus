@@ -128,23 +128,24 @@
     }
   </script>
 <style data-purpose="layout">
+    html, body {
+      height: 100%;
+    }
     body {
       background-color: #f8fafa;
       margin: 0;
       padding: 0;
       display: flex;
       justify-content: center;
-      align-items: flex-start;
-      height: 100vh;
-      overflow: hidden;
+      align-items: stretch;
+      height: 100%;
     }
     .iphone-container {
       width: 100%;
       max-width: 390px;
-      height: 100vh;
+      height: 100%;
       background-color: white;
       position: relative;
-      overflow: hidden;
       display: flex;
       flex-direction: column;
       box-shadow: 0 0 20px rgba(0,0,0,0.1);

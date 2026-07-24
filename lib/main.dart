@@ -1445,8 +1445,8 @@ class _WebViewHomeScreenState extends ConsumerState<WebViewHomeScreen> {
     // 1. Riverpod 전역 에러 리스너 바인딩
     ref.listen(errorInterceptorProvider, (previous, next) {
       if (next.hasError) {
-        // 어떠한 화면에 있더라도 즉시 대시보드로 이동시킴 (기획서 명세 100% 반영)
-        if (!_currentUrl.contains("dashboard/code.html") && !_isRedirecting) {
+        // 모달이나 파라미터가 띄워진 대시보드 상태라도 강제로 파라미터 없는 대시보드로 새로고침
+        if (!_isRedirecting) {
           _isRedirecting = true;
           _loadDashboardPage().then((_) {
             _isRedirecting = false;

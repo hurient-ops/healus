@@ -149,7 +149,7 @@
             <div class="flex items-center gap-2">
               <div class="flex-1">
                 <select id="breakfast-int" class="w-full bg-surface rounded-lg border border-outline-variant text-on-surface focus:border-primary focus:ring-1 focus:ring-primary px-3 py-2.5 font-body-lg text-center transition-all">
-                  <option value="0">0</option><option value="1" selected>1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option>
+                  <option value="0">0</option><option value="1" selected>1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option>
                 </select>
               </div>
               <span class="font-bold text-on-surface">.</span>
@@ -172,7 +172,7 @@
             <div class="flex items-center gap-2">
               <div class="flex-1">
                 <select id="lunch-int" class="w-full bg-surface rounded-lg border border-outline-variant text-on-surface focus:border-primary focus:ring-1 focus:ring-primary px-3 py-2.5 font-body-lg text-center transition-all">
-                  <option value="0">0</option><option value="1" selected>1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option>
+                  <option value="0">0</option><option value="1" selected>1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option>
                 </select>
               </div>
               <span class="font-bold text-on-surface">.</span>
@@ -195,7 +195,7 @@
             <div class="flex items-center gap-2">
               <div class="flex-1">
                 <select id="dinner-int" class="w-full bg-surface rounded-lg border border-outline-variant text-on-surface focus:border-primary focus:ring-1 focus:ring-primary px-3 py-2.5 font-body-lg text-center transition-all">
-                  <option value="0">0</option><option value="1" selected>1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option>
+                  <option value="0">0</option><option value="1" selected>1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option>
                 </select>
               </div>
               <span class="font-bold text-on-surface">.</span>
@@ -296,7 +296,13 @@
       }
 
       if (decEl) {
-        decEl.value = decValue.padEnd(2, '0');
+        if (intValue === '30') {
+          decEl.value = '00';
+          decEl.disabled = true;
+        } else {
+          decEl.value = decValue.padEnd(2, '0');
+          decEl.disabled = false;
+        }
       }
     });
   }
@@ -344,6 +350,21 @@
 
   const savedValues = loadSavedMealSettings();
   applyMealValues(savedValues);
+
+  ['breakfast', 'lunch', 'dinner'].forEach(meal => {
+    const intSelect = document.getElementById(`${meal}-int`);
+    const decSelect = document.getElementById(`${meal}-dec`);
+    if (intSelect && decSelect) {
+      intSelect.addEventListener('change', (e) => {
+        if (e.target.value === '30') {
+          decSelect.value = '00';
+          decSelect.disabled = true;
+        } else {
+          decSelect.disabled = false;
+        }
+      });
+    }
+  });
 
   document.addEventListener('DOMContentLoaded', () => {
     // 네이티브 공통 식사설정 상태 요청

@@ -258,7 +258,7 @@
       <div class="bg-surface-container rounded-xl p-md flex gap-sm items-start">
         <span class="material-symbols-outlined text-primary mt-0.5"
           style="font-variation-settings: &quot;FILL&quot; 1;">info</span>
-        <p class="font-body-sm text-[11px] leading-tight text-on-surface-variant font-medium"><span class=""
+        <p class="font-body-sm text-[11px] leading-tight text-on-surface-variant font-medium break-keep"><span class=""
             style="color: rgb(63, 72, 73); font-family: Inter;">-회식적용은 식사설정에 예약된 단위수를 비교적 적절한 회식시간을 추정하여 나누어 주입하는
             기능</span><br
             style="--tw-border-spacing-y: 0; --tw-translate-x: 0; --tw-translate-y: 0; --tw-rotate: 0; --tw-skew-x: 0; --tw-skew-y: 0; --tw-scale-x: 1; --tw-scale-y: 1; --tw-pan-x: ; --tw-pan-y: ; --tw-pinch-zoom: ; --tw-scroll-snap-strictness: proximity; --tw-gradient-from-position: ; --tw-gradient-via-position: ; --tw-gradient-to-position: ; --tw-ordinal: ; --tw-slashed-zero: ; --tw-numeric-figure: ; --tw-numeric-spacing: ; --tw-numeric-fraction: ; --tw-ring-inset: ; --tw-ring-offset-width: 0px; --tw-ring-offset-color: #fff; --tw-ring-color: rgb(59 130 246 / 0.5); --tw-ring-offset-shadow: 0 0 #0000; --tw-ring-shadow: 0 0 #0000; --tw-shadow: 0 0 #0000; --tw-shadow-colored: 0 0 #0000; --tw-blur: ; --tw-brightness: ; --tw-contrast: ; --tw-grayscale: ; --tw-hue-rotate: ; --tw-invert: ; --tw-saturate: ; --tw-sepia: ; --tw-drop-shadow: ; --tw-backdrop-blur: ; --tw-backdrop-brightness: ; --tw-backdrop-contrast: ; --tw-backdrop-grayscale: ; --tw-backdrop-hue-rotate: ; --tw-backdrop-invert: ; --tw-backdrop-opacity: ; --tw-backdrop-saturate: ; --tw-backdrop-sepia: ; --tw-contain-size: ; --tw-contain-layout: ; --tw-contain-paint: ; --tw-contain-style: ; color: rgb(63, 72, 73); font-family: Inter;"><span
@@ -273,7 +273,7 @@
           <span class="font-body-md font-semibold text-on-surface text-body-sm">아침설정 값</span>
           <div class="flex items-center">
             <input
-              class="w-16 text-right border-none rounded-lg font-headline-sm text-on-surface py-2 focus:ring-0 bg-gray-100 text-body-lg"
+              class="w-24 pr-2 text-right border-none rounded-lg font-headline-sm text-on-surface py-2 focus:ring-0 bg-gray-100 text-body-lg"
               readonly="" type="text" id="breakfast-val" value="1.00">
             <span class="font-body-md text-on-surface ml-2 w-4">U</span>
           </div>
@@ -284,7 +284,7 @@
           <span class="font-body-md font-semibold text-on-surface text-body-sm">점심설정 값</span>
           <div class="flex items-center">
             <input
-              class="w-16 text-right border-none rounded-lg font-headline-sm text-on-surface py-2 focus:ring-0 bg-gray-100 text-body-lg"
+              class="w-24 pr-2 text-right border-none rounded-lg font-headline-sm text-on-surface py-2 focus:ring-0 bg-gray-100 text-body-lg"
               readonly="" type="text" id="lunch-val" value="1.00">
             <span class="font-body-md text-on-surface ml-2 w-4">U</span>
           </div>
@@ -295,7 +295,7 @@
           <span class="font-body-md font-semibold text-on-surface text-body-sm">저녁설정 값</span>
           <div class="flex items-center">
             <input
-              class="w-16 text-right border-none rounded-xl font-headline-sm text-on-surface py-2 focus:ring-0 bg-gray-100 text-body-lg"
+              class="w-24 pr-2 text-right border-none rounded-xl font-headline-sm text-on-surface py-2 focus:ring-0 bg-gray-100 text-body-lg"
               readonly="" type="text" id="dinner-val" value="1.00">
             <span class="font-body-md text-on-surface ml-2 w-4">U</span>
           </div>
@@ -396,10 +396,14 @@
         window.onInjectionRejected = () => {
           applyBtn.disabled = false;
           applyBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+          localStorage.setItem('isInjecting', 'false');
+          localStorage.setItem('showToastMsg', '주입 요청을 취소합니다.');
           if (typeof showToast === 'function') {
             showToast('주입 요청을 취소합니다.');
+            localStorage.removeItem('showToastMsg');
           } else if (typeof window.showToast === 'function') {
             window.showToast('주입 요청을 취소합니다.');
+            localStorage.removeItem('showToastMsg');
           }
         };
       });

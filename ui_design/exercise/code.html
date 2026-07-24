@@ -269,10 +269,14 @@
         window.onInjectionRejected = () => {
           applyBtn.disabled = false;
           applyBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+          localStorage.setItem('isInjecting', 'false');
+          localStorage.setItem('showToastMsg', '주입 요청을 취소합니다.');
           if (typeof showToast === 'function') {
             showToast('주입 요청을 취소합니다.');
+            localStorage.removeItem('showToastMsg');
           } else if (typeof window.showToast === 'function') {
             window.showToast('주입 요청을 취소합니다.');
+            localStorage.removeItem('showToastMsg');
           }
         };
       });
