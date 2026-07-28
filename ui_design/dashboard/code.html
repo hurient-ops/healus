@@ -553,6 +553,7 @@
 
       els.btnRefresh.addEventListener('click', () => {
         els.btnRefresh.querySelector('span').classList.add('animate-spin');
+        console.log("REQUEST_DASHBOARD_REFRESH");
         setTimeout(() => {
           els.btnRefresh.querySelector('span').classList.remove('animate-spin');
         }, 500);

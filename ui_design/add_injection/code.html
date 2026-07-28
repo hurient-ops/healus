@@ -298,7 +298,7 @@
 </li>
 <li class="font-body-sm flex items-start gap-2 text-[11px] leading-tight text-on-surface">
 <span class="w-1 h-1 bg-[#93000a] rounded-full mt-1.5 shrink-0"></span>
-<span class="">1회 30Unit이상 연속주입가능, 1일 전체 50Unit이상 주입<br>가능 (필요시 1일 주입제한 내에서 계속주입 가능)</span>
+<span class="">1회 30Unit이상 연속주입가능, 1일 전체 50Unit이상 주입가능<br> (필요시 1일 주입제한 내에서 계속주입 가능)</span>
 </li>
 </ul>
 </section>
@@ -361,6 +361,15 @@
         const selectIntEl = document.getElementById('select-int');
         const selectDecEl = document.getElementById('select-dec');
 
+        selectIntEl.addEventListener('change', (e) => {
+            if (e.target.value === '30') {
+                selectDecEl.value = '0.00';
+                selectDecEl.disabled = true;
+            } else {
+                selectDecEl.disabled = false;
+            }
+        });
+
         const getFinalValue = () => {
             const intVal = parseInt(selectIntEl.value, 10);
             const decVal = parseFloat(selectDecEl.value);
@@ -399,10 +408,14 @@
             window.onInjectionRejected = () => {
                 btnInject.disabled = false;
                 btnInject.classList.remove('opacity-70', 'cursor-not-allowed');
+                localStorage.setItem('isInjecting', 'false');
+                localStorage.setItem('showToastMsg', '주입 요청을 취소합니다.');
                 if (typeof showToast === 'function') {
-                    showToast('주입 요청을 취소합니다.');
+                  showToast('주입 요청을 취소합니다.');
+                  localStorage.removeItem('showToastMsg');
                 } else if (typeof window.showToast === 'function') {
-                    window.showToast('주입 요청을 취소합니다.');
+                  window.showToast('주입 요청을 취소합니다.');
+                  localStorage.removeItem('showToastMsg');
                 }
             };
         });

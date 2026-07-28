@@ -1,114 +1,119 @@
 <!DOCTYPE html>
 
-<html lang="ko"><head>
-<script>
-  (function() {
-    const CONFIG_USE_TIMER = true; 
-    const isInjecting = localStorage.getItem('isInjecting') === 'true';
-    const currentPath = window.location.pathname;
-    const preventPaths = ['meal_injection', 'add_injection', 'dining', 'exercise'];
-    const isPreventPath = preventPaths.some(path => currentPath.includes(path));
-    
-    function showToast(message) {
-      const toast = document.createElement('div');
-      toast.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 bg-slate-800/90 text-white text-[13px] px-5 py-3 rounded-full shadow-lg z-[9999] transition-all duration-300 opacity-0 transform translate-y-2 pointer-events-none whitespace-nowrap font-medium';
-      toast.innerText = message;
-      document.body.appendChild(toast);
-      
-      toast.offsetHeight;
-      toast.classList.remove('opacity-0', 'translate-y-2');
-      toast.classList.add('opacity-100', 'translate-y-0');
-      
-      setTimeout(() => {
-        toast.classList.remove('opacity-100', 'translate-y-0');
-        toast.classList.add('opacity-0', 'translate-y-2');
-        setTimeout(() => toast.remove(), 300);
-      }, 2000);
-    }
-    
-    if (isInjecting && isPreventPath) {
-      localStorage.setItem('showToastMsg', '주입 중에서 수행할 수 없습니다');
-      window.location.href = '../dashboard/code.html';
-      return;
-    }
-    
-    let activeTimer = null;
-    
-    function checkInjectingStatus() {
-      const activeInjecting = localStorage.getItem('isInjecting') === 'true';
-      if (!activeInjecting) {
-        if (activeTimer) {
-          clearTimeout(activeTimer);
-          activeTimer = null;
-        }
-        return;
-      }
-      
-      const endTime = parseInt(localStorage.getItem('injectingEndTime') || '0', 10);
-      const now = Date.now();
-      const useTimer = CONFIG_USE_TIMER && (localStorage.getItem('CONFIG_USE_TIMER') !== 'false');
-      
-      if (useTimer && endTime > 0) {
-        if (now >= endTime) {
-          triggerComplete();
-        } else {
-          const delay = endTime - now;
-          if (activeTimer) clearTimeout(activeTimer);
-          activeTimer = setTimeout(triggerComplete, delay);
-        }
-      }
-    }
-    
-    function triggerComplete() {
-      console.log('BLE 수신 시뮬레이션: BT_INJ_STOP_IND (0x3B) 주입 완료 수신');
-      localStorage.setItem('isInjecting', 'false');
-      localStorage.removeItem('injectingEndTime');
-      localStorage.setItem('showCompleteModal', 'true');
-      window.location.href = '../dashboard/code.html';
-    }
-    
-    function init() {
-      const pendingToast = localStorage.getItem('showToastMsg');
-      if (pendingToast) {
-        localStorage.removeItem('showToastMsg');
-        if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', () => showToast(pendingToast));
-        } else {
-          showToast(pendingToast);
-        }
-      }
-      checkInjectingStatus();
-    }
-    
-    init();
-    
-    window.addEventListener('storage', (e) => {
-      if (e.key === 'isInjecting') {
-        const updatedInjecting = localStorage.getItem('isInjecting') === 'true';
-        if (updatedInjecting && isPreventPath) {
-          localStorage.setItem('showToastMsg', '주입 중에서 수행할 수 없습니다');
-          window.location.href = '../dashboard/code.html';
-        } else if (!updatedInjecting && isInjecting && !isPreventPath) {
-          localStorage.setItem('showCompleteModal', 'true');
-          window.location.href = '../dashboard/code.html';
-        }
-      }
-      if (e.key === 'isInjecting' || e.key === 'injectingEndTime' || e.key === 'CONFIG_USE_TIMER') {
-        checkInjectingStatus();
-      }
-    });
-  })();
-</script>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
-<title>PIN Entry - Heal Us</title>
-<script crossorigin="" src="https://unpkg.com/react@18/umd/react.development.js"></script>
-<script crossorigin="" src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-<script src="https://unpkg.com/@babel/standalone@7.22.20/babel.min.js"></script>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<script id="tailwind-config">
+<html lang="ko">
+
+<head>
+    <script>
+        (function () {
+            const CONFIG_USE_TIMER = true;
+            const isInjecting = localStorage.getItem('isInjecting') === 'true';
+            const currentPath = window.location.pathname;
+            const preventPaths = ['meal_injection', 'add_injection', 'dining', 'exercise'];
+            const isPreventPath = preventPaths.some(path => currentPath.includes(path));
+
+            function showToast(message) {
+                const toast = document.createElement('div');
+                toast.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 bg-slate-800/90 text-white text-[13px] px-5 py-3 rounded-full shadow-lg z-[9999] transition-all duration-300 opacity-0 transform translate-y-2 pointer-events-none whitespace-nowrap font-medium';
+                toast.innerText = message;
+                document.body.appendChild(toast);
+
+                toast.offsetHeight;
+                toast.classList.remove('opacity-0', 'translate-y-2');
+                toast.classList.add('opacity-100', 'translate-y-0');
+
+                setTimeout(() => {
+                    toast.classList.remove('opacity-100', 'translate-y-0');
+                    toast.classList.add('opacity-0', 'translate-y-2');
+                    setTimeout(() => toast.remove(), 300);
+                }, 2000);
+            }
+
+            if (isInjecting && isPreventPath) {
+                localStorage.setItem('showToastMsg', '주입 중에서 수행할 수 없습니다');
+                window.location.href = '../dashboard/code.html';
+                return;
+            }
+
+            let activeTimer = null;
+
+            function checkInjectingStatus() {
+                const activeInjecting = localStorage.getItem('isInjecting') === 'true';
+                if (!activeInjecting) {
+                    if (activeTimer) {
+                        clearTimeout(activeTimer);
+                        activeTimer = null;
+                    }
+                    return;
+                }
+
+                const endTime = parseInt(localStorage.getItem('injectingEndTime') || '0', 10);
+                const now = Date.now();
+                const useTimer = CONFIG_USE_TIMER && (localStorage.getItem('CONFIG_USE_TIMER') !== 'false');
+
+                if (useTimer && endTime > 0) {
+                    if (now >= endTime) {
+                        triggerComplete();
+                    } else {
+                        const delay = endTime - now;
+                        if (activeTimer) clearTimeout(activeTimer);
+                        activeTimer = setTimeout(triggerComplete, delay);
+                    }
+                }
+            }
+
+            function triggerComplete() {
+                console.log('BLE 수신 시뮬레이션: BT_INJ_STOP_IND (0x3B) 주입 완료 수신');
+                localStorage.setItem('isInjecting', 'false');
+                localStorage.removeItem('injectingEndTime');
+                localStorage.setItem('showCompleteModal', 'true');
+                window.location.href = '../dashboard/code.html';
+            }
+
+            function init() {
+                const pendingToast = localStorage.getItem('showToastMsg');
+                if (pendingToast) {
+                    localStorage.removeItem('showToastMsg');
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', () => showToast(pendingToast));
+                    } else {
+                        showToast(pendingToast);
+                    }
+                }
+                checkInjectingStatus();
+            }
+
+            init();
+
+            window.addEventListener('storage', (e) => {
+                if (e.key === 'isInjecting') {
+                    const updatedInjecting = localStorage.getItem('isInjecting') === 'true';
+                    if (updatedInjecting && isPreventPath) {
+                        localStorage.setItem('showToastMsg', '주입 중에서 수행할 수 없습니다');
+                        window.location.href = '../dashboard/code.html';
+                    } else if (!updatedInjecting && isInjecting && !isPreventPath) {
+                        localStorage.setItem('showCompleteModal', 'true');
+                        window.location.href = '../dashboard/code.html';
+                    }
+                }
+                if (e.key === 'isInjecting' || e.key === 'injectingEndTime' || e.key === 'CONFIG_USE_TIMER') {
+                    checkInjectingStatus();
+                }
+            });
+        })();
+    </script>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport" />
+    <title>PIN Entry - HealUs</title>
+    <script crossorigin="" src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin="" src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.22.20/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;700&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
         tailwind.config = {
             darkMode: "class",
             theme: {
@@ -135,23 +140,43 @@
             }
         };
     </script>
-<style>
+    <style>
         .material-symbols-outlined {
             font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
         }
+
         .filled-icon {
             font-variation-settings: 'FILL' 1, 'wght' 300, 'GRAD' 0, 'opsz' 24;
         }
+
         @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            20% { transform: translateX(-5px); }
-            40% { transform: translateX(5px); }
-            60% { transform: translateX(-5px); }
-            80% { transform: translateX(5px); }
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            20% {
+                transform: translateX(-5px);
+            }
+
+            40% {
+                transform: translateX(5px);
+            }
+
+            60% {
+                transform: translateX(-5px);
+            }
+
+            80% {
+                transform: translateX(5px);
+            }
         }
+
         .animate-shake {
             animation: shake 0.4s ease-in-out;
         }
+
         body {
             -webkit-tap-highlight-color: transparent;
             overflow: hidden;
@@ -164,6 +189,7 @@
             padding: 12px 0;
             box-sizing: border-box;
         }
+
         #root {
             width: 390px;
             height: 884px;
@@ -174,15 +200,18 @@
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.08);
             background-color: #f8fafa;
         }
+
         .mobile-shell {
             width: 100%;
             height: 100%;
         }
+
         .app-container {
             height: 100%;
             display: flex;
             flex-direction: column;
         }
+
         .main-content {
             flex: 1;
             overflow-y: auto;
@@ -190,235 +219,237 @@
         }
     </style>
 </head>
+
 <body class="bg-surface text-on-surface font-body">
-<div id="root"></div>
-<script type="text/babel">
-    const { useState, useEffect } = React;
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect } = React;
 
-    const Dashboard = () => (
-        <div className="app-container">
-            <header className="shrink-0 z-50 bg-white border-b border-slate-100 shadow-sm shadow-[#2A6062]/5 flex justify-between items-center px-4 h-16 mt-10">
-                <div className="flex items-center gap-3">
-                    <span className="material-symbols-outlined text-[#2A6062]">medical_services</span>
-                    <h1 className="text-xl font-bold text-[#2A6062] font-manrope">HealUs</h1>
-                </div>
-                <div className="flex items-center">
-                    <button className="p-2 rounded-full hover:bg-slate-50 transition-colors">
-                        <span className="material-symbols-outlined text-slate-400">sync</span>
-                    </button>
-                    <button className="p-2 rounded-full hover:bg-slate-50 transition-colors">
-                        <span className="material-symbols-outlined text-slate-400">bluetooth</span>
-                    </button>
-                </div>
-            </header>
-            <main className="main-content px-4 max-w-md mx-auto w-full pb-4 pt-1 space-y-3">
-                <section className="bg-white rounded-xl shadow-sm border border-[#E0E7E7] flex flex-col gap-4 p-4">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <span className="text-[11px] text-outline uppercase tracking-wider">오늘의 요약</span>
-                            <div className="mt-2 flex gap-4">
-                                <div className="flex flex-col">
-                                    <span className="text-xl font-bold text-primary">0<span className="text-xs ml-0.5 text-outline">U</span></span>
-                                    <span className="text-[10px] font-semibold text-outline uppercase">기초</span>
-                                </div>
-                                <div className="flex flex-col border-l border-slate-100 pl-4">
-                                    <span className="text-xl font-bold text-primary">0<span className="text-xs ml-0.5 text-outline">U</span></span>
-                                    <span className="text-[10px] font-semibold text-outline uppercase">식사</span>
-                                </div>
-                                <div className="flex flex-col border-l border-slate-100 pl-4">
-                                    <span className="text-xl font-bold text-primary">0<span className="text-xs ml-0.5 text-outline">U</span></span>
-                                    <span className="text-[10px] font-semibold text-outline uppercase">추가</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="bg-primary/10 p-2.5 rounded-full">
-                            <span className="material-symbols-outlined text-primary text-3xl">syringe</span>
-                        </div>
+        const Dashboard = () => (
+            <div className="app-container">
+                <header className="shrink-0 z-50 bg-white border-b border-slate-100 shadow-sm shadow-[#2A6062]/5 flex justify-between items-center px-4 h-16 mt-10">
+                    <div className="flex items-center gap-3">
+                        <span className="material-symbols-outlined text-[#2A6062]">medical_services</span>
+                        <h1 className="text-xl font-bold text-[#2A6062] font-manrope">HealUs</h1>
                     </div>
-                    <div className="space-y-3">
-                        <div className="space-y-1.5">
-                            <div className="flex justify-between text-[11px]">
-                                <span className="text-on-surface-variant flex items-center gap-1"><span className="material-symbols-outlined text-xs">battery_horiz_075</span> 펌프 배터리</span>
-                                <span className="text-primary font-bold">75%</span>
-                            </div>
-                            <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                                <div className="h-full bg-primary rounded-full" style={{width: '75%'}}></div>
-                            </div>
-                        </div>
-                        <div className="space-y-1.5">
-                            <div className="flex justify-between text-[11px]">
-                                <span className="text-on-surface-variant flex items-center gap-1"><span className="material-symbols-outlined text-xs">water_drop</span> 인슐린 잔량</span>
-                                <span className="text-primary font-bold">75 / 300 U</span>
-                            </div>
-                            <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                                <div className="h-full bg-primary rounded-full" style={{width: '25%'}}></div>
-                            </div>
-                        </div>
+                    <div className="flex items-center">
+                        <button className="p-2 rounded-full hover:bg-slate-50 transition-colors">
+                            <span className="material-symbols-outlined text-slate-400">sync</span>
+                        </button>
+                        <button className="p-2 rounded-full hover:bg-slate-50 transition-colors">
+                            <span className="material-symbols-outlined text-slate-400">bluetooth</span>
+                        </button>
                     </div>
-                </section>
-                <div className="relative rounded-xl overflow-hidden shadow-sm border border-slate-100 h-28">
-                    <img alt="Medical tech concept" className="w-full h-full object-cover" src="./images/password.png" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-primary/50 to-transparent"></div>
-                    <div className="absolute bottom-3 left-3 text-white">
-                        <p className="text-[10px] font-semibold opacity-90">당신을 위한</p>
-                        <p className="text-base font-bold">혈당관리 파트너</p>
-                    </div>
-                </div>
-                <section className="space-y-1">
-                    <h2 className="text-[11px] text-outline uppercase tracking-wider pl-1">빠른 실행</h2>
-                    <div className="grid grid-cols-2 gap-2">
-                        {['식사 주입', '추가 주입', '회식 적용', '운동 모드'].map((label, idx) => {
-                            const icons = ['restaurant', 'add_circle', 'work', 'fitness_center'];
-                            return (
-                                <button key={idx} className="flex flex-col items-center justify-center p-4 bg-white rounded-xl border border-slate-100 shadow-sm hover:bg-slate-50 transition-colors active:scale-95">
-                                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center mb-2 text-primary">
-                                        <span className="material-symbols-outlined text-2xl">{icons[idx]}</span>
-                                    </div>
-                                    <span className="text-[12px] font-medium text-center leading-none">{label}</span>
-                                </button>
-                            );
-                        })}
-                    </div>
-                </section>
-                <section className="">
-                    <button className="w-full bg-secondary-container hover:bg-secondary text-on-secondary-container py-4 rounded-full flex items-center justify-center gap-3 shadow-lg shadow-secondary/10 active:scale-[0.98] transition-all">
-                        <span className="material-symbols-outlined filled-icon text-2xl" style={{fontVariationSettings: '"FILL" 1'}}>emergency_home</span>
-                        <span className="font-bold tracking-tight text-base uppercase">긴급 정지</span>
-                    </button>
-                    <p className="text-center text-[10px] text-outline px-8 italic mt-1.5">연결된 장치로부터 모든 인슐린 공급을 즉시 중단합니다.</p>
-                </section>
-            </main>
-            <nav className="shrink-0 flex justify-around items-center px-2 pb-safe pt-2 h-16 bg-white border-t border-slate-100 shadow-[0_-4px_12px_0px_rgba(42,96,98,0.08)]">
-                <a className="flex flex-col items-center justify-center text-[#2A6062] font-bold bg-[#2A6062]/10 rounded-2xl px-4 py-1" href="#">
-                    <span className="material-symbols-outlined filled-icon" style={{fontVariationSettings: '"FILL" 1'}}>home</span>
-                    <span className="text-[10px] font-medium">홈</span>
-                </a>
-                {['settings', 'history', 'info'].map((icon, i) => (
-                    <a key={i} className="flex flex-col items-center justify-center text-slate-400 hover:text-[#2A6062]" href="#">
-                        <span className="material-symbols-outlined">{icon}</span>
-                        <span className="text-[10px] font-medium">{icon === 'settings' ? '설정' : icon === 'history' ? '기록' : '정보'}</span>
-                    </a>
-                ))}
-            </nav>
-        </div>
-    );
-
-    const App = () => {
-        const [pin, setPin] = useState('');
-        const [errorMsg, setErrorMsg] = useState('보안을 위해 비밀번호를 입력해 주세요');
-        const [isError, setIsError] = useState(false);
-        const correctPin = '000000';
-        const pinLength = 6;
-
-        useEffect(() => {
-            if (pin.length === pinLength) {
-                if (pin === correctPin) {
-                    console.log('연결 성공');
-                    window.location.assign('../dashboard/code.html');
-                } else {
-                    setTimeout(() => {
-                        setPin('');
-                        setIsError(true);
-                        setErrorMsg('암호가 일치하지 않습니다.');
-                    }, 200);
-                }
-            }
-        }, [pin]);
-
-        const handleNumberClick = (num) => {
-            if (pin.length < pinLength) {
-                setPin(prev => prev + num);
-                if (isError) {
-                    setIsError(false);
-                    setErrorMsg('보안을 위해 비밀번호를 입력해 주세요');
-                }
-            }
-        };
-
-        const handleBackspace = () => {
-            if (pin.length > 0) {
-                setPin(prev => prev.slice(0, -1));
-            }
-        };
-
-        const handleClear = () => {
-            setPin('');
-            setIsError(false);
-            setErrorMsg('보안을 위해 비밀번호를 입력해 주세요');
-        };
-
-        const handleRefresh = () => {
-            window.location.assign('../password/code.html');
-        };
-
-        return (
-            <div className="mobile-shell flex flex-col bg-surface">
-                {/* Header */}
-                <header className="flex justify-between items-center p-4 bg-white shadow-sm shrink-0">
-                    <div className="text-xl font-bold text-primary">Heal Us</div>
-                    <button onClick={handleRefresh} className="p-2 text-on-surface-variant">
-                        <span className="material-symbols-outlined">refresh</span>
-                    </button>
                 </header>
-
-                {/* Main Content */}
-                <main className="flex-1 w-full max-w-md mx-auto flex flex-col items-center justify-center px-6 pt-10">
-                    
-                    <div className="text-center mb-12 shrink-0">
-                        <h1 className="text-2xl font-bold text-on-surface mb-2">암호 입력</h1>
-                        <p className={`text-sm font-medium ${isError ? 'text-red-500' : 'text-on-surface-variant'}`}>{errorMsg}</p>
+                <main className="main-content px-4 max-w-md mx-auto w-full pb-4 pt-1 space-y-3">
+                    <section className="bg-white rounded-xl shadow-sm border border-[#E0E7E7] flex flex-col gap-4 p-4">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <span className="text-[11px] text-outline uppercase tracking-wider">오늘의 요약</span>
+                                <div className="mt-2 flex gap-4">
+                                    <div className="flex flex-col">
+                                        <span className="text-xl font-bold text-primary">0<span className="text-xs ml-0.5 text-outline">U</span></span>
+                                        <span className="text-[10px] font-semibold text-outline uppercase">기초</span>
+                                    </div>
+                                    <div className="flex flex-col border-l border-slate-100 pl-4">
+                                        <span className="text-xl font-bold text-primary">0<span className="text-xs ml-0.5 text-outline">U</span></span>
+                                        <span className="text-[10px] font-semibold text-outline uppercase">식사</span>
+                                    </div>
+                                    <div className="flex flex-col border-l border-slate-100 pl-4">
+                                        <span className="text-xl font-bold text-primary">0<span className="text-xs ml-0.5 text-outline">U</span></span>
+                                        <span className="text-[10px] font-semibold text-outline uppercase">추가</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="bg-primary/10 p-2.5 rounded-full">
+                                <span className="material-symbols-outlined text-primary text-3xl">syringe</span>
+                            </div>
+                        </div>
+                        <div className="space-y-3">
+                            <div className="space-y-1.5">
+                                <div className="flex justify-between text-[11px]">
+                                    <span className="text-on-surface-variant flex items-center gap-1"><span className="material-symbols-outlined text-xs">battery_horiz_075</span> 펌프 배터리</span>
+                                    <span className="text-primary font-bold">75%</span>
+                                </div>
+                                <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                    <div className="h-full bg-primary rounded-full" style={{ width: '75%' }}></div>
+                                </div>
+                            </div>
+                            <div className="space-y-1.5">
+                                <div className="flex justify-between text-[11px]">
+                                    <span className="text-on-surface-variant flex items-center gap-1"><span className="material-symbols-outlined text-xs">water_drop</span> 인슐린 잔량</span>
+                                    <span className="text-primary font-bold">75 / 300 U</span>
+                                </div>
+                                <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                    <div className="h-full bg-primary rounded-full" style={{ width: '25%' }}></div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                    <div className="relative rounded-xl overflow-hidden shadow-sm border border-slate-100 h-28">
+                        <img alt="Medical tech concept" className="w-full h-full object-cover" src="./images/password.png" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-primary/50 to-transparent"></div>
+                        <div className="absolute bottom-3 left-3 text-white">
+                            <p className="text-[10px] font-semibold opacity-90">당신을 위한</p>
+                            <p className="text-base font-bold">혈당관리 파트너</p>
+                        </div>
                     </div>
-
-                    {/* PIN Indicator Dots */}
-                    <div className={`flex gap-5 mb-16 h-4 items-center shrink-0 ${isError ? 'animate-shake' : ''}`}>
-                        {[...Array(pinLength)].map((_, index) => (
-                            <div
-                                key={index}
-                                className={`w-4 h-4 rounded-full transition-all duration-200 ${
-                                    index < pin.length 
-                                    ? 'bg-[#2A6062] shadow-sm shadow-primary/20 scale-110' 
-                                    : 'bg-[#E0E0E0]'
-                                }`}
-                            ></div>
-                        ))}
-                    </div>
-
-                    {/* Numeric Keypad Grid */}
-                    <div className="grid grid-cols-3 gap-y-6 gap-x-12 w-full max-w-[280px] mb-12 shrink-0">
-                        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
-                            <button 
-                                key={num}
-                                onClick={() => handleNumberClick(num.toString())}
-                                className="flex items-center justify-center w-16 h-16 font-bold text-2xl text-on-surface rounded-full active:bg-slate-100 transition-colors"
-                            >
-                                {num}
-                            </button>
-                        ))}
-                        <button 
-                            onClick={handleClear}
-                            className="flex items-center justify-center w-16 h-16 text-on-surface-variant rounded-full active:bg-slate-100 transition-colors"
-                        >
-                            <span className="material-symbols-outlined text-3xl">close</span>
+                    <section className="space-y-1">
+                        <h2 className="text-[11px] text-outline uppercase tracking-wider pl-1">빠른 실행</h2>
+                        <div className="grid grid-cols-2 gap-2">
+                            {['식사 주입', '추가 주입', '회식 적용', '운동 모드'].map((label, idx) => {
+                                const icons = ['restaurant', 'add_circle', 'work', 'fitness_center'];
+                                return (
+                                    <button key={idx} className="flex flex-col items-center justify-center p-4 bg-white rounded-xl border border-slate-100 shadow-sm hover:bg-slate-50 transition-colors active:scale-95">
+                                        <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center mb-2 text-primary">
+                                            <span className="material-symbols-outlined text-2xl">{icons[idx]}</span>
+                                        </div>
+                                        <span className="text-[12px] font-medium text-center leading-none">{label}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </section>
+                    <section className="">
+                        <button className="w-full bg-secondary-container hover:bg-secondary text-on-secondary-container py-4 rounded-full flex items-center justify-center gap-3 shadow-lg shadow-secondary/10 active:scale-[0.98] transition-all">
+                            <span className="material-symbols-outlined filled-icon text-2xl" style={{ fontVariationSettings: '"FILL" 1' }}>emergency_home</span>
+                            <span className="font-bold tracking-tight text-base uppercase">긴급 정지</span>
                         </button>
-                        <button 
-                            onClick={() => handleNumberClick('0')}
-                            className="flex items-center justify-center w-16 h-16 font-bold text-2xl text-on-surface rounded-full active:bg-slate-100 transition-colors"
-                        >
-                            0
-                        </button>
-                        <button 
-                            onClick={handleBackspace}
-                            className="flex items-center justify-center w-16 h-16 text-on-surface-variant rounded-full active:bg-slate-100 transition-colors"
-                        >
-                            <span className="material-symbols-outlined text-3xl">backspace</span>
-                        </button>
-                    </div>
+                        <p className="text-center text-[10px] text-outline px-8 italic mt-1.5">연결된 장치로부터 모든 인슐린 공급을 즉시 중단합니다.</p>
+                    </section>
                 </main>
+                <nav className="shrink-0 flex justify-around items-center px-2 pb-safe pt-2 h-16 bg-white border-t border-slate-100 shadow-[0_-4px_12px_0px_rgba(42,96,98,0.08)]">
+                    <a className="flex flex-col items-center justify-center text-[#2A6062] font-bold bg-[#2A6062]/10 rounded-2xl px-4 py-1" href="#">
+                        <span className="material-symbols-outlined filled-icon" style={{ fontVariationSettings: '"FILL" 1' }}>home</span>
+                        <span className="text-[10px] font-medium">홈</span>
+                    </a>
+                    {['settings', 'history', 'info'].map((icon, i) => (
+                        <a key={i} className="flex flex-col items-center justify-center text-slate-400 hover:text-[#2A6062]" href="#">
+                            <span className="material-symbols-outlined">{icon}</span>
+                            <span className="text-[10px] font-medium">{icon === 'settings' ? '설정' : icon === 'history' ? '기록' : '정보'}</span>
+                        </a>
+                    ))}
+                </nav>
             </div>
         );
-    };
 
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<App />);
-</script>
-</body></html>
+        const App = () => {
+            const [pin, setPin] = useState('');
+            const [errorMsg, setErrorMsg] = useState('보안을 위해 비밀번호를 입력해 주세요');
+            const [isError, setIsError] = useState(false);
+            const correctPin = '000000';
+            const pinLength = 6;
+
+            useEffect(() => {
+                if (pin.length === pinLength) {
+                    if (pin === correctPin) {
+                        console.log('연결 성공');
+                        window.location.assign('../dashboard/code.html');
+                    } else {
+                        setTimeout(() => {
+                            setPin('');
+                            setIsError(true);
+                            setErrorMsg('암호가 일치하지 않습니다.');
+                        }, 200);
+                    }
+                }
+            }, [pin]);
+
+            const handleNumberClick = (num) => {
+                if (pin.length < pinLength) {
+                    setPin(prev => prev + num);
+                    if (isError) {
+                        setIsError(false);
+                        setErrorMsg('보안을 위해 비밀번호를 입력해 주세요');
+                    }
+                }
+            };
+
+            const handleBackspace = () => {
+                if (pin.length > 0) {
+                    setPin(prev => prev.slice(0, -1));
+                }
+            };
+
+            const handleClear = () => {
+                setPin('');
+                setIsError(false);
+                setErrorMsg('보안을 위해 비밀번호를 입력해 주세요');
+            };
+
+            const handleRefresh = () => {
+                window.location.assign('../password/code.html');
+            };
+
+            return (
+                <div className="mobile-shell flex flex-col bg-surface">
+                    {/* Header */}
+                    <header className="flex justify-between items-center p-4 bg-white shadow-sm shrink-0">
+                        <div className="text-xl font-bold text-primary">HealUs</div>
+                        <button onClick={handleRefresh} className="p-2 text-on-surface-variant">
+                            <span className="material-symbols-outlined">refresh</span>
+                        </button>
+                    </header>
+
+                    {/* Main Content */}
+                    <main className="flex-1 w-full max-w-md mx-auto flex flex-col items-center justify-center px-6 pt-10">
+
+                        <div className="text-center mb-12 shrink-0">
+                            <h1 className="text-2xl font-bold text-on-surface mb-2">암호 입력</h1>
+                            <p className={`text-sm font-medium ${isError ? 'text-red-500' : 'text-on-surface-variant'}`}>{errorMsg}</p>
+                        </div>
+
+                        {/* PIN Indicator Dots */}
+                        <div className={`flex gap-5 mb-16 h-4 items-center shrink-0 ${isError ? 'animate-shake' : ''}`}>
+                            {[...Array(pinLength)].map((_, index) => (
+                                <div
+                                    key={index}
+                                    className={`w-4 h-4 rounded-full transition-all duration-200 ${index < pin.length
+                                            ? 'bg-[#2A6062] shadow-sm shadow-primary/20 scale-110'
+                                            : 'bg-[#E0E0E0]'
+                                        }`}
+                                ></div>
+                            ))}
+                        </div>
+
+                        {/* Numeric Keypad Grid */}
+                        <div className="grid grid-cols-3 gap-y-6 gap-x-12 w-full max-w-[280px] mb-12 shrink-0">
+                            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
+                                <button
+                                    key={num}
+                                    onClick={() => handleNumberClick(num.toString())}
+                                    className="flex items-center justify-center w-16 h-16 font-bold text-2xl text-on-surface rounded-full active:bg-slate-100 transition-colors"
+                                >
+                                    {num}
+                                </button>
+                            ))}
+                            <button
+                                onClick={handleClear}
+                                className="flex items-center justify-center w-16 h-16 text-on-surface-variant rounded-full active:bg-slate-100 transition-colors"
+                            >
+                                <span className="material-symbols-outlined text-3xl">close</span>
+                            </button>
+                            <button
+                                onClick={() => handleNumberClick('0')}
+                                className="flex items-center justify-center w-16 h-16 font-bold text-2xl text-on-surface rounded-full active:bg-slate-100 transition-colors"
+                            >
+                                0
+                            </button>
+                            <button
+                                onClick={handleBackspace}
+                                className="flex items-center justify-center w-16 h-16 text-on-surface-variant rounded-full active:bg-slate-100 transition-colors"
+                            >
+                                <span className="material-symbols-outlined text-3xl">backspace</span>
+                            </button>
+                        </div>
+                    </main>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

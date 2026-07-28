@@ -67,7 +67,6 @@ class InjectController extends StateNotifier<List<List<int>>> {
     queueEmergencyPacket(packet);
   }
 
-  /// 기기 상태 조회(0x04) 후 idle(0x01)일 때만 대상 패킷을 큐에 삽입
   Future<bool> checkStateAndExecute(List<int> targetPacket) async {
     final bleService = _ref.read(bleServiceProvider);
     if (!bleService.isConnected) return false;
@@ -207,11 +206,11 @@ class InjectController extends StateNotifier<List<List<int>>> {
 
         await bleService.sendPacket(currentPacket);
         
-        // Timeout 적용 대기 (기초설정 0x0F는 플래시 기록 마진 등을 위해 20초, 그 외 모든 일반 명령어는 15초로 넉넉하게 연장)
+        // Timeout 적용 대기 (기초설정 0x0F는 플래시 기록 마진 등을 위해 20초, 그 외 모든 일반 명령어는 20초로 연장)
         final bypassHold = _ref.read(timeoutHoldProvider);
         final waitTimeout = bypassHold 
             ? const Duration(days: 365) 
-            : (currentPacket[1] == Opcodes.btTimeBaseSetReq ? const Duration(seconds: 20) : const Duration(seconds: 15));
+            : const Duration(seconds: 20);
         
         try {
           await ackCompleter.future.timeout(waitTimeout);

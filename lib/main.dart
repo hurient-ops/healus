@@ -83,6 +83,7 @@ class _WebViewHomeScreenState extends ConsumerState<WebViewHomeScreen> {
   Timer? _qntTimer;
   final Duration _qntInterval = const Duration(minutes: 30);
   bool _hasRequestedInitialData = false;
+  final Set<int> _pendingInitialRequests = {};
 
   // === [TEST MODE ONLY] ===
   Timer? _injectTimeoutTimer;
@@ -393,6 +394,17 @@ class _WebViewHomeScreenState extends ConsumerState<WebViewHomeScreen> {
 
     print("최초 대시보드 진입 감지 -> 기기 초기 상태 정보 일체 동기화 개시 (1회성)");
     _hasRequestedInitialData = true;
+    _pendingInitialRequests.clear();
+    _pendingInitialRequests.addAll([
+      Opcodes.btBattDataReq,
+      Opcodes.btPumpPidReq,
+      Opcodes.btLogInjQntReq,
+      Opcodes.btEatValueReq,
+      Opcodes.btBaseValueReq,
+      Opcodes.btInjInfoReq,
+      Opcodes.btPumpFwReq,
+      Opcodes.btLogReq,
+    ]);
 
     final injectNotifier = ref.read(injectControllerProvider.notifier);
 
@@ -515,6 +527,12 @@ class _WebViewHomeScreenState extends ConsumerState<WebViewHomeScreen> {
         ref.read(basalSyncControllerProvider.notifier).handleIncomingPacket(packet, isRealPacket: isReal);
         ref.read(errorInterceptorProvider.notifier).interceptPacket(packet);
 
+        // 2. 수신된 패킷에 해당하는 초기 요청 리스트 지우기 (스마트 새로고침용)
+        final reqOpcode = _mapResponseToRequestOpcode(packet[1]);
+        if (reqOpcode != null) {
+          _pendingInitialRequests.remove(reqOpcode);
+        }
+
         // Ack 응답 처리
         if (packet[1] == Opcodes.btMsgRes) {
           final targetOp = packet[3];
@@ -549,6 +567,25 @@ class _WebViewHomeScreenState extends ConsumerState<WebViewHomeScreen> {
         }
       });
     });
+  }
+
+  int? _mapResponseToRequestOpcode(int resOpcode) {
+    switch (resOpcode) {
+      case Opcodes.btBattDataRes:
+      case Opcodes.btBattDataInd:
+        return Opcodes.btBattDataReq;
+      case Opcodes.btPumpPidRes: return Opcodes.btPumpPidReq;
+      case Opcodes.btLogInjQntInd: return Opcodes.btLogInjQntReq;
+      case Opcodes.btEatValueRes: return Opcodes.btEatValueReq;
+      case Opcodes.btBaseValueRes: return Opcodes.btBaseValueReq;
+      case Opcodes.btInjInfoRes: return Opcodes.btInjInfoReq;
+      case Opcodes.btPumpFwRes: return Opcodes.btPumpFwReq;
+      case Opcodes.btDataEndInd:
+      case Opcodes.btLogDataInd:
+      case Opcodes.btDataStartInd:
+        return Opcodes.btLogReq;
+      default: return null;
+    }
   }
 
   /// 웹뷰 내의 console.log 스트림 분석 후 네이티브 BLE 바인딩 (JS -> Native 브릿지)
@@ -587,6 +624,30 @@ class _WebViewHomeScreenState extends ConsumerState<WebViewHomeScreen> {
       print("[DEBUG] main.dart: Webview requested history logs");
       ref.read(basalSyncControllerProvider.notifier).requestHistoryLogs();
       _sendHistoryLogsToWebview();
+      return;
+    }
+
+    if (message.contains("REQUEST_DASHBOARD_REFRESH")) {
+      print("[DEBUG] main.dart: Webview requested DASHBOARD_REFRESH");
+      if (_pendingInitialRequests.isEmpty) {
+        print("[DEBUG] 빠진 패킷 없음 -> 웹뷰 화면 리로딩");
+        _controller.reload();
+      } else {
+        print("[DEBUG] 미수신 패킷 재요청: $_pendingInitialRequests");
+        final injectNotifier = ref.read(injectControllerProvider.notifier);
+        for (final reqOpcode in _pendingInitialRequests) {
+          final packet = List<int>.filled(20, 0);
+          packet[0] = kStartCode;
+          packet[1] = reqOpcode;
+          packet[2] = 0;
+          
+          if (reqOpcode == Opcodes.btInjInfoReq) {
+            packet[2] = 1;
+            packet[3] = 0;
+          }
+          injectNotifier.queuePacket(packet);
+        }
+      }
       return;
     }
 
@@ -1445,8 +1506,8 @@ class _WebViewHomeScreenState extends ConsumerState<WebViewHomeScreen> {
     // 1. Riverpod 전역 에러 리스너 바인딩
     ref.listen(errorInterceptorProvider, (previous, next) {
       if (next.hasError) {
-        // 어떠한 화면에 있더라도 즉시 대시보드로 이동시킴 (기획서 명세 100% 반영)
-        if (!_currentUrl.contains("dashboard/code.html") && !_isRedirecting) {
+        // 모달이나 파라미터가 띄워진 대시보드 상태라도 강제로 파라미터 없는 대시보드로 새로고침
+        if (!_isRedirecting) {
           _isRedirecting = true;
           _loadDashboardPage().then((_) {
             _isRedirecting = false;
