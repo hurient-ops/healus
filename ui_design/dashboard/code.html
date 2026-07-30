@@ -490,7 +490,7 @@
     }
 
     function handleEmergencyConfirm() {
-      console.log('BLE 명령 송신: 긴급 정지');
+      console.log('BLE 명령 전송: 긴급 정지');
       clearCompletionSimulation();
       globalState.isInjecting = false;
       localStorage.setItem('isInjecting', 'false');
@@ -498,8 +498,7 @@
       localStorage.removeItem('lastInjectAction');
       updateInjectingBadge();
       clearPendingRequest();
-      closeAllModals();
-      resetDashboardUrl();
+      openModal('emergency');
     }
 
     function handleCompleteConfirm() {
@@ -599,11 +598,12 @@
         }, 500);
       });
 
-      els.btnEmergency.addEventListener('click', () => {
-        openModal('emergency');
-      });
+      els.btnEmergency.addEventListener('click', handleEmergencyConfirm);
 
-      els.btnEmergencyOk.addEventListener('click', handleEmergencyConfirm);
+      els.btnEmergencyOk.addEventListener('click', () => {
+        closeAllModals();
+        resetDashboardUrl();
+      });
       els.btnRequestOk.addEventListener('click', handleRequestAccept);
       els.btnRequestClose.addEventListener('click', handleRequestClose);
       els.btnCompleteOk.addEventListener('click', handleCompleteConfirm);
