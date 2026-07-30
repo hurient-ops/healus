@@ -26,13 +26,16 @@ class CloudSyncService {
     });
   }
 
+  /// 현재 연결된 펌프의 PID (클라우드 전송 식별자로 사용)
+  String currentPumpPid = "UNKNOWN_PID";
+
   /// BLE 패킷 전송 시 호출 (TX)
-  void emitTxPacket(List<int> packet, {String deviceMac = "UNKNOWN"}) {
-    _packetStreamController.add(RawPacketEvent(packet: packet, direction: 'TX', deviceMac: deviceMac));
+  void emitTxPacket(List<int> packet, {String? deviceMac}) {
+    _packetStreamController.add(RawPacketEvent(packet: packet, direction: 'TX', deviceMac: currentPumpPid));
   }
 
   /// BLE 패킷 수신 시 호출 (RX)
-  void emitRxPacket(List<int> packet, {String deviceMac = "UNKNOWN"}) {
-    _packetStreamController.add(RawPacketEvent(packet: packet, direction: 'RX', deviceMac: deviceMac));
+  void emitRxPacket(List<int> packet, {String? deviceMac}) {
+    _packetStreamController.add(RawPacketEvent(packet: packet, direction: 'RX', deviceMac: currentPumpPid));
   }
 }

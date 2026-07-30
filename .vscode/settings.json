@@ -1,3 +1,14 @@
 {
-    "cmake.sourceDirectory": "E:/projects/healus/linux"
+    cmake.sourceDirectory: E:/projects/healus/linux,
+    java.import.excludes: [**/build/**, **/.plugin_symlinks/**, **/.dart_tool/**],
+    gradle.nestedProjects.exclude: [**/build/**, **/.plugin_symlinks/**, **/.dart_tool/**],
+    files.exclude: {
+        **/.plugin_symlinks: true,
+        **/.dart_tool: true
+    },
+    files.watcherExclude: {
+        **/.plugin_symlinks/**: true,
+        **/.dart_tool/**: true,
+        **/build/**: true
+    }
 }

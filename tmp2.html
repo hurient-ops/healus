@@ -101,7 +101,7 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=Manrope:wght@600;700;800&amp;display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=block" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
 <script id="tailwind-config">
   tailwind.config = {
     darkMode: "class",
@@ -377,10 +377,8 @@
         };
 
         const goToDashboard = (params = {}) => {
-            if (Object.keys(params).length > 0) {
-                localStorage.setItem('pendingRequest', JSON.stringify(params));
-            }
-            window.location.href = '../dashboard/code.html';
+            const query = new URLSearchParams(params).toString();
+            window.location.href = `../dashboard/code.html${query ? `?${query}` : ''}`;
         };
 
         const btnInject = document.getElementById('btn-inject');
@@ -388,15 +386,6 @@
 
         btnInject.addEventListener('click', () => {
             const finalValue = getFinalValue();
-            
-            if (parseFloat(finalValue) === 0) {
-                if (typeof showToast === 'function') {
-                    showToast('추가주입 설정이 잘못되었습니다.');
-                } else if (typeof window.showToast === 'function') {
-                    window.showToast('추가주입 설정이 잘못되었습니다.');
-                }
-                return;
-            }
             
             btnInject.disabled = true;
             btnInject.classList.add('opacity-70', 'cursor-not-allowed');

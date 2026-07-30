@@ -7,7 +7,7 @@
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <!-- Material Icons for standard icons -->
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=block" rel="stylesheet"/>
 <script>
     tailwind.config = {
       theme: {
@@ -105,6 +105,7 @@
 <div class="flex items-center gap-2 mb-3">
 <h2 class="text-gray-text text-sm">오늘의 요약</h2>
 <span class="hidden bg-blue-100 text-blue-600 text-[10px] font-bold px-2 py-0.5 rounded-full" id="badge-injecting">주입 중</span>
+<span class="hidden bg-green-100 text-green-600 text-[10px] font-bold px-2 py-0.5 rounded-full" id="badge-exercise">운동 감량 중</span>
 </div>
 <div class="flex gap-3">
 <!-- Basal -->
@@ -296,6 +297,7 @@
 
     let globalState = {
       isInjecting: false,
+      isExerciseActive: false,
       activeModal: null,
       pendingAction: null,
       pendingPayload: null,
@@ -325,7 +327,11 @@
 
     function navigateToAction(actionKey) {
       if (localStorage.getItem('isInjecting') === 'true') {
-        showToast('주입 중에서 수행할 수 없습니다');
+        showToast('주입 중에는 실행할 수 없습니다');
+        return;
+      }
+      if (localStorage.getItem('isExerciseActive') === 'true' && actionKey === 'exercise') {
+        showToast('운동 적용 중입니다');
         return;
       }
       const targetPath = ACTION_SCREEN_PATHS[actionKey];
@@ -382,9 +388,26 @@
 
     function openModal(modalType) {
       closeAllModals();
+      let targetModalId = modalType;
+      if (modalType === 'exercise-complete') {
+        targetModalId = 'complete';
+      }
       globalState.activeModal = modalType;
-      const modalEl = document.getElementById(`${modalType}-modal`);
+      const modalEl = document.getElementById(`${targetModalId}-modal`);
       if (modalEl) {
+        if (targetModalId === 'complete') {
+          const lastAction = localStorage.getItem('lastInjectAction');
+          const titleEl = modalEl.querySelector('h2');
+          if (titleEl) {
+            if (modalType === 'exercise-complete') {
+              titleEl.textContent = '운동 감량이 종료되었습니다.';
+            } else if (lastAction === 'exercise') {
+              titleEl.textContent = '운동적용이 완료되었습니다.';
+            } else {
+              titleEl.textContent = '주입이 완료되었습니다.';
+            }
+          }
+        }
         modalEl.classList.add('active');
       }
     }
@@ -398,14 +421,22 @@
 
     function updateInjectingBadge() {
       const badge = document.getElementById('badge-injecting');
-      if (!badge) {
-        return;
+      const badgeExercise = document.getElementById('badge-exercise');
+
+      if (badge) {
+        if (globalState.isInjecting) {
+          badge.classList.remove('hidden');
+        } else {
+          badge.classList.add('hidden');
+        }
       }
 
-      if (globalState.isInjecting) {
-        badge.classList.remove('hidden');
-      } else {
-        badge.classList.add('hidden');
+      if (badgeExercise) {
+        if (globalState.isExerciseActive) {
+          badgeExercise.classList.remove('hidden');
+        } else {
+          badgeExercise.classList.add('hidden');
+        }
       }
     }
 
@@ -443,6 +474,9 @@
     }
 
     function handleRequestAccept() {
+      if (globalState.pendingAction) {
+        localStorage.setItem('lastInjectAction', globalState.pendingAction);
+      }
       clearPendingRequest();
       closeAllModals();
       resetDashboardUrl();
@@ -456,11 +490,12 @@
     }
 
     function handleEmergencyConfirm() {
-      console.log('BLE 명령 전송: 긴급 정지');
+      console.log('BLE 명령 전송: 긴급 중지');
       clearCompletionSimulation();
       globalState.isInjecting = false;
       localStorage.setItem('isInjecting', 'false');
       localStorage.removeItem('injectingEndTime');
+      localStorage.removeItem('lastInjectAction');
       updateInjectingBadge();
       clearPendingRequest();
       closeAllModals();
@@ -472,22 +507,27 @@
       globalState.isInjecting = false;
       localStorage.setItem('isInjecting', 'false');
       localStorage.removeItem('injectingEndTime');
+      localStorage.removeItem('lastInjectAction');
       updateInjectingBadge();
       clearPendingRequest();
       closeAllModals();
       resetDashboardUrl();
     }
 
-    function applyRequestFromQuery() {
-      const params = new URLSearchParams(window.location.search);
-      const modalType = params.get('modal');
-      const action = params.get('action');
-      const payload = params.get('payload');
-
-      if (modalType === 'request' && action) {
-        globalState.pendingAction = action;
-        globalState.pendingPayload = payload;
-        openModal('request');
+    function applyPendingRequest() {
+      const pendingReqStr = localStorage.getItem('pendingRequest');
+      if (pendingReqStr) {
+        try {
+          const req = JSON.parse(pendingReqStr);
+          if (req.modal === 'request' && req.action) {
+            globalState.pendingAction = req.action;
+            globalState.pendingPayload = req.payload;
+            setTimeout(() => {
+              openModal('request');
+            }, 150);
+          }
+        } catch(e) {}
+        localStorage.removeItem('pendingRequest');
       }
     }
 
@@ -589,7 +629,7 @@
 
       render();
       updateInjectingBadge();
-      applyRequestFromQuery();
+      applyPendingRequest();
 
       // 외부 스토리지 변경 실시간 수신 (BLE 완료 처리 대응)
       window.addEventListener('storage', (e) => {
@@ -611,6 +651,35 @@
           scheduleCompletionSimulation();
         }
       });
+    });
+
+    window.onPumpStateChanged = function(isInjecting, isExerciseActive) {
+      const changedInjecting = (globalState.isInjecting !== isInjecting);
+      const changedExercise = (globalState.isExerciseActive !== isExerciseActive);
+      globalState.isInjecting = isInjecting;
+      globalState.isExerciseActive = isExerciseActive;
+      updateInjectingBadge();
+      
+      if (changedInjecting) {
+        if (!isInjecting) {
+          clearCompletionSimulation();
+          openModal('complete');
+        } else {
+          scheduleCompletionSimulation();
+        }
+      }
+
+      if (changedExercise && !isExerciseActive) {
+        openModal('exercise-complete');
+      }
+    };
+
+    window.addEventListener('pageshow', (event) => {
+      if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
+        if (typeof closeAllModals === 'function') {
+          closeAllModals();
+        }
+      }
     });
   </script>
 </body></html>

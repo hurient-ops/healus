@@ -23,7 +23,11 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 void main() async {
   // 1. Flutter 바인딩 초기화 보장
-  WidgetsFlutterBinding.ensureInitialized();
+    WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
 
   // 2. SQLite 로컬 DB 인스턴스 싱글톤 생성 및 스키마 초기화
   final sqfliteDb = SqflitePumpDatabase();
@@ -78,6 +82,7 @@ class _WebViewHomeScreenState extends ConsumerState<WebViewHomeScreen> {
 
   bool _isConnectingDevice = false;
   String _connectingStatusMessage = "";
+  DateTime? _lastBackPressTime;
   Timer? _batteryTimer;
   final Duration _batteryInterval = const Duration(minutes: 30);
   Timer? _qntTimer;
@@ -404,6 +409,7 @@ class _WebViewHomeScreenState extends ConsumerState<WebViewHomeScreen> {
       Opcodes.btInjInfoReq,
       Opcodes.btPumpFwReq,
       Opcodes.btLogReq,
+      Opcodes.btCurTimeInd,
     ]);
 
     final injectNotifier = ref.read(injectControllerProvider.notifier);
@@ -584,6 +590,7 @@ class _WebViewHomeScreenState extends ConsumerState<WebViewHomeScreen> {
       case Opcodes.btLogDataInd:
       case Opcodes.btDataStartInd:
         return Opcodes.btLogReq;
+      case Opcodes.btCurTimeRes: return Opcodes.btCurTimeInd;
       default: return null;
     }
   }
@@ -636,6 +643,10 @@ class _WebViewHomeScreenState extends ConsumerState<WebViewHomeScreen> {
         print("[DEBUG] 미수신 패킷 재요청: $_pendingInitialRequests");
         final injectNotifier = ref.read(injectControllerProvider.notifier);
         for (final reqOpcode in _pendingInitialRequests) {
+          if (reqOpcode == Opcodes.btCurTimeInd) {
+            ref.read(timeSyncControllerProvider.notifier).startTimeSync(_controller);
+            continue;
+          }
           final packet = List<int>.filled(20, 0);
           packet[0] = kStartCode;
           packet[1] = reqOpcode;
@@ -809,6 +820,7 @@ class _WebViewHomeScreenState extends ConsumerState<WebViewHomeScreen> {
         packet[5] = reduction;
         final success = await ref.read(injectControllerProvider.notifier).checkStateAndExecute(packet);
         if (success) {
+          ref.read(pumpStateProvider.notifier).setExerciseActive(true);
           _controller.runJavaScript("if (window.onInjectionApproved) window.onInjectionApproved();");
         } else {
           _controller.runJavaScript("if (window.onInjectionRejected) window.onInjectionRejected();");
@@ -1074,8 +1086,16 @@ class _WebViewHomeScreenState extends ConsumerState<WebViewHomeScreen> {
     // data: URL 스킴에서는 localStorage 접근이 차단되므로 try-catch로 안전하게 처리
     _controller.runJavaScript("try { localStorage.setItem('CONFIG_USE_TIMER', 'false'); } catch(e) {}");
     
-    // 2. 주입 중 상태 동기화
-    _controller.runJavaScript("try { localStorage.setItem('isInjecting', '${pumpState.isPumpInjecting}'); } catch(e) {}");
+    // 2. 주입 및 운동 상태 동기화
+    _controller.runJavaScript('''
+      try { 
+        localStorage.setItem('isInjecting', '${pumpState.isPumpInjecting}'); 
+        localStorage.setItem('isExerciseActive', '${pumpState.isExerciseActive}');
+        if(window.onPumpStateChanged) {
+          window.onPumpStateChanged(${pumpState.isPumpInjecting}, ${pumpState.isExerciseActive});
+        }
+      } catch(e) {}
+    ''');
 
     final testMode = ref.read(testModeProvider);
 
@@ -1526,6 +1546,7 @@ class _WebViewHomeScreenState extends ConsumerState<WebViewHomeScreen> {
           previous.mealSum != next.mealSum ||
           previous.appendSum != next.appendSum ||
           previous.isPumpInjecting != next.isPumpInjecting ||
+          previous.isExerciseActive != next.isExerciseActive ||
           previous.basalRates != next.basalRates ||
           previous.mealSettings != next.mealSettings ||
           previous.hasReceivedBattery != next.hasReceivedBattery ||
@@ -1601,6 +1622,33 @@ class _WebViewHomeScreenState extends ConsumerState<WebViewHomeScreen> {
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
+        
+        try {
+          final Object modalResult = await _controller.runJavaScriptReturningResult(
+            "(typeof globalState !== 'undefined' && globalState.activeModal !== null)"
+          );
+          if (modalResult == true) {
+            await _controller.runJavaScript("if (typeof closeAllModals === 'function') closeAllModals();");
+            return;
+          }
+        } catch (e) {
+          debugPrint("Modal check error: $e");
+        }
+
+        if (_currentUrl.contains("dashboard/code.html")) {
+          final now = DateTime.now();
+          if (_lastBackPressTime == null || now.difference(_lastBackPressTime!) > const Duration(seconds: 2)) {
+            _lastBackPressTime = now;
+            _controller.runJavaScript("if (typeof showToast === 'function') showToast('뒤로 버튼을 한 번 더 누르시면 앱이 종료됩니다.');");
+            return;
+          } else {
+            if (context.mounted) {
+              await SystemNavigator.pop();
+            }
+            return;
+          }
+        }
+
         if (await _controller.canGoBack()) {
           await _controller.goBack();
         } else {

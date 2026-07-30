@@ -108,7 +108,7 @@
     href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=Manrope:wght@400;500;600;700;800&amp;display=swap"
     rel="stylesheet">
   <link
-    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=block"
     rel="stylesheet">
   <style>
     .material-symbols-outlined {
@@ -363,8 +363,10 @@
       }
 
       const goToDashboard = (params = {}) => {
-        const query = new URLSearchParams(params).toString();
-        window.location.href = `../dashboard/code.html${query ? `?${query}` : ''}`;
+        if (Object.keys(params).length > 0) {
+          localStorage.setItem('pendingRequest', JSON.stringify(params));
+        }
+        window.location.href = '../dashboard/code.html';
       };
 
       applyBtn.addEventListener('click', () => {

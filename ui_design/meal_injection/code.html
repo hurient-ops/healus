@@ -103,7 +103,7 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;500;700&amp;family=Noto+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=block" rel="stylesheet"/>
 <script id="tailwind-config">tailwind.config = {darkMode: "class", theme: {extend: {colors: {outline: "#6f7979", "on-error": "#ffffff", "on-secondary-fixed": "#3f001b", "outline-variant": "#bfc8c8", secondary: "#ab2c5d", "inverse-primary": "#90d2d5", "on-tertiary-container": "#f3fffe", "on-primary": "#ffffff", "primary-fixed": "#aceef1", "surface-container-lowest": "#ffffff", "inverse-on-surface": "#eff1f1", "on-surface": "#191c1d", "surface-container-highest": "#e1e3e3", "surface-dim": "#d8dada", "on-secondary": "#ffffff", "surface-tint": "#22686b", surface: "#f8fafa", "surface-container": "#eceeee", "on-secondary-fixed-variant": "#8b0e45", "secondary-fixed": "#ffd9e1", "on-background": "#191c1d", "surface-variant": "#e1e3e3", "tertiary-fixed-dim": "#b8cac9", "on-primary-fixed": "#002021", "surface-container-high": "#e6e8e9", "surface-container-low": "#f2f4f4", "inverse-surface": "#2e3131", "secondary-fixed-dim": "#ffb1c5", tertiary: "#4f5f5f", background: "#f8fafa", "surface-bright": "#f8fafa", "error-container": "#ffdad6", "on-primary-container": "#f3ffff", "on-surface-variant": "#3f4849", "secondary-container": "#fd6c9c", "tertiary-container": "#677877", "on-tertiary-fixed-variant": "#3a4a49", "on-secondary-container": "#6e0034", "on-error-container": "#93000a", "on-tertiary-fixed": "#0e1e1e", error: "#ba1a1a", "primary-container": "#3c7e81", primary: "#1f6568", "on-tertiary": "#ffffff", "on-primary-fixed-variant": "#004f52", "primary-fixed-dim": "#90d2d5", "tertiary-fixed": "#d4e6e5"}, borderRadius: {DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px"}, spacing: {"margin-mobile": "16px", gutter: "16px", md: "24px", sm: "12px", xs: "4px", base: "8px", lg: "40px", xl: "32px", xxl: "48px", xxs: "4px"}, fontFamily: {"body-md": ["Noto Sans"], "display-lg": ["Nunito Sans"], "data-lg": ["Nunito Sans"], "label-sm": ["Noto Sans"], "headline-md": ["Nunito Sans"], "body-lg": ["Noto Sans"], "headline-lg": ["Nunito Sans"], "label-md": ["Inter"], "label-lg": ["Inter"], "title-lg": ["Nunito Sans"], headline: ["Noto Sans"], display: ["Noto Sans"], body: ["Noto Sans"], label: ["Noto Sans"]}, fontSize: {"body-md": ["16px", {lineHeight: "24px", fontWeight: "400"}], "display-lg": ["32px", {lineHeight: "40px", letterSpacing: "-0.02em", fontWeight: "700"}], "data-lg": ["48px", {lineHeight: "48px", fontWeight: "800"}], "label-sm": ["13px", {lineHeight: "16px", letterSpacing: "0.03em", fontWeight: "600"}], "headline-md": ["24px", {lineHeight: "32px", fontWeight: "600"}], "body-lg": ["18px", {lineHeight: "28px", fontWeight: "400"}], "headline-lg": ["32px", {lineHeight: "40px", fontWeight: "400"}], "label-md": ["12px", {lineHeight: "16px", fontWeight: "500"}], "label-lg": ["14px", {lineHeight: "20px", fontWeight: "500"}], "title-lg": ["22px", {lineHeight: "28px", fontWeight: "500"}]}}}};</script>
 <style>
         .material-symbols-outlined {
@@ -188,7 +188,9 @@
           lunch: lunch,
           dinner: dinner
         }));
-        window.location.href = `../dashboard/code.html?modal=request&action=meal&payload=${payload}`;
+        const params = { modal: 'request', action: 'meal', payload };
+        localStorage.setItem('pendingRequest', JSON.stringify(params));
+        window.location.href = '../dashboard/code.html';
       };
 
       window.onInjectionRejected = () => {

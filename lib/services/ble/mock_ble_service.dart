@@ -146,8 +146,9 @@ class MockBleService implements BleService {
         break;
 
       case Opcodes.btPumpPidReq:
-        // 고유 PID 요청 -> AABBCCDD (0xDD, 0xCC, 0xBB, 0xAA) 전달
-        _fireFakeIncomingPacket(Opcodes.btPumpPidRes, [0xDD, 0xCC, 0xBB, 0xAA]);
+        // 고유 PID 요청 -> 16Byte 문자열 전달
+        final pidBytes = 'PUMP1234567890AB'.codeUnits;
+        _fireFakeIncomingPacket(Opcodes.btPumpPidRes, pidBytes);
         break;
 
       case Opcodes.btPumpFwReq:

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/ble/opcodes.dart';
 import '../services/ble/packet_parser.dart';
+import '../services/api/cloud_sync_service.dart';
 
 /// HealUs 펌프의 전역 상태 모델
 class PumpStateData {
@@ -9,6 +10,9 @@ class PumpStateData {
 
   /// 인슐린 주입 중 여부 (UI Lock 트리거 대상)
   final bool isPumpInjecting;
+
+  /// 운동 감량 모드 활성화 상태
+  final bool isExerciseActive;
 
   /// 배터리 잔량 레벨 (0: Empty ~ 4: Full)
   final int batteryLevel;
@@ -73,6 +77,7 @@ class PumpStateData {
   PumpStateData({
     this.connectionState = PumpState.idle,
     this.isPumpInjecting = false,
+    this.isExerciseActive = false,
     this.batteryLevel = 4,
     this.insulinRemaining = 300.0,
     this.password = "000000",
@@ -102,6 +107,7 @@ class PumpStateData {
   PumpStateData copyWith({
     PumpState? connectionState,
     bool? isPumpInjecting,
+    bool? isExerciseActive,
     int? batteryLevel,
     double? insulinRemaining,
     String? password,
@@ -126,6 +132,7 @@ class PumpStateData {
     return PumpStateData(
       connectionState: connectionState ?? this.connectionState,
       isPumpInjecting: isPumpInjecting ?? this.isPumpInjecting,
+      isExerciseActive: isExerciseActive ?? this.isExerciseActive,
       batteryLevel: batteryLevel ?? this.batteryLevel,
       insulinRemaining: insulinRemaining ?? this.insulinRemaining,
       password: password ?? this.password,
@@ -224,7 +231,6 @@ class PumpStateNotifier extends StateNotifier<PumpStateData> {
         break;
 
       case Opcodes.btInjStartInd:
-      case Opcodes.btExerciseInjStartInd:
       case Opcodes.btReceptionInjStartInd:
         // 주입 시작 시 UI Lock 오버레이 트리거
         state = state.copyWith(
@@ -233,7 +239,15 @@ class PumpStateNotifier extends StateNotifier<PumpStateData> {
         );
         break;
 
+      case Opcodes.btExerciseInjStartInd:
+        // 운동 감량 모드 시작 시 (주입 잠금 안 함)
+        state = state.copyWith(
+          isExerciseActive: true,
+        );
+        break;
+
       case Opcodes.btInjStopInd:
+      case Opcodes.btReceptionInjStopInd:
         // 주입 완료 시 UI Lock 오버레이 해제 및 잔량 갱신 (마지막 2B insul_remain -> offset 12)
         double currentRemain = state.insulinRemaining;
         if (dataLen >= 11) {
@@ -258,10 +272,8 @@ class PumpStateNotifier extends StateNotifier<PumpStateData> {
         break;
 
       case Opcodes.btExerciseInjStopInd:
-      case Opcodes.btReceptionInjStopInd:
         state = state.copyWith(
-          isPumpInjecting: false,
-          connectionState: PumpState.idle,
+          isExerciseActive: false,
         );
         break;
 
@@ -362,10 +374,12 @@ class PumpStateNotifier extends StateNotifier<PumpStateData> {
         break;
 
       case Opcodes.btPumpPidRes:
-        // 고유 PID 응답: [3..6] PID (4Byte)
-        if (dataLen >= 4) {
-          final int pidVal = PacketParser.readUint32(packet, 3);
-          state = state.copyWith(pumpPid: pidVal.toRadixString(16).toUpperCase());
+        // 고유 PID 응답: [3..18] PID (16Byte)
+        if (dataLen >= 16) {
+          final pidBytes = packet.sublist(3, 19);
+          final String pidStr = String.fromCharCodes(pidBytes).trim();
+          CloudSyncService().currentPumpPid = pidStr;
+          state = state.copyWith(pumpPid: pidStr);
         }
         break;
 
@@ -407,6 +421,13 @@ class PumpStateNotifier extends StateNotifier<PumpStateData> {
     state = state.copyWith(
       isPumpInjecting: injecting,
       connectionState: injecting ? PumpState.injecting : PumpState.idle,
+    );
+  }
+
+  /// 운동 감량 모드 상태 강제 설정 (앱에서 시작 성공 시)
+  void setExerciseActive(bool active) {
+    state = state.copyWith(
+      isExerciseActive: active,
     );
   }
 

@@ -240,8 +240,10 @@
       const reductionSelect = document.querySelectorAll('select')[1];
 
       const goToDashboard = (params = {}) => {
-        const query = new URLSearchParams(params).toString();
-        window.location.href = `../dashboard/code.html${query ? `?${query}` : ''}`;
+        if (Object.keys(params).length > 0) {
+          localStorage.setItem('pendingRequest', JSON.stringify(params));
+        }
+        window.location.href = '../dashboard/code.html';
       };
 
       applyBtn.addEventListener('click', () => {
@@ -256,8 +258,6 @@
         window.onInjectionApproved = () => {
           applyBtn.disabled = false;
           applyBtn.classList.remove('opacity-70', 'cursor-not-allowed');
-          localStorage.setItem('isInjecting', 'true');
-          localStorage.setItem('injectingEndTime', (Date.now() + 5000).toString());
           const payload = encodeURIComponent(JSON.stringify({ time, reduction }));
           goToDashboard({
             modal: 'request',
