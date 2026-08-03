@@ -194,6 +194,16 @@
     const [isPaused, setIsPaused] = useState(() => localStorage.getItem('isPaused') === 'true');
     const [activeModal, setActiveModal] = useState(null);
 
+    React.useEffect(() => {
+      window.globalState = window.globalState || { activeModal: null };
+      window.globalState.activeModal = activeModal;
+      if (activeModal) {
+        window.closeAllModals = () => setActiveModal(null);
+      } else {
+        window.closeAllModals = () => {};
+      }
+    }, [activeModal]);
+
     const sendBLECommand = (command) => {
       console.log(`BLE Command Sent: [${command}]`);
     };
@@ -456,14 +466,25 @@
     document.body.appendChild(modal);
 
     const okButton = document.getElementById('basal-save-ok');
-    okButton.addEventListener('click', () => {
+    
+    window.globalState = window.globalState || { activeModal: null };
+    window.globalState.activeModal = 'save-modal';
+    
+    const closeModalFunc = () => {
       params.delete('saved');
       params.delete('type');
       const query = params.toString();
       const newUrl = query ? `${window.location.pathname}?${query}` : window.location.pathname;
       window.history.replaceState({}, '', newUrl);
-      modal.remove();
-    });
+      if (document.getElementById('basal-save-modal')) {
+        modal.remove();
+      }
+      window.globalState.activeModal = null;
+      window.closeAllModals = () => {};
+    };
+
+    window.closeAllModals = closeModalFunc;
+    okButton.addEventListener('click', closeModalFunc);
   }
 </script>
 </body>

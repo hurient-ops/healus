@@ -397,7 +397,7 @@
     console.log('UPDATE_BASAL_RATES: [' + payload.join(', ') + ']');
     sendSettingsToBle(payload);
     setTimeout(() => {
-      window.location.href = '../main_setting/code.html?saved=1';
+      window.location.replace('../main_setting/code.html?saved=1');
     }, 150);
   }
 

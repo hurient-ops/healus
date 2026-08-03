@@ -344,7 +344,7 @@
     console.log(`BLE 명령 전송: BT_MEAL_SET_REQ (0x10) - 아침: ${values.breakfast} U, 점심: ${values.lunch} U, 저녁: ${values.dinner} U 설정 전송`);
     
     setTimeout(() => {
-      window.location.href = '../main_setting/code.html?saved=1&type=meal';
+      window.location.replace('../main_setting/code.html?saved=1&type=meal');
     }, 150);
   });
 
