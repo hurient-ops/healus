@@ -1,4 +1,4 @@
-<!DOCTYPE html><html class="app-loading" lang="ko"><head>
+<!DOCTYPE html><html lang="ko"><head>
 <script>
   (function() {
     const CONFIG_USE_TIMER = true; 
@@ -119,56 +119,26 @@
       document.documentElement.style.setProperty('--app-height', h + 'px');
     }
 
-    var revealed = false;
-    var stableTimer = null;
-
-    function reveal() {
-      if (revealed) return;
-      revealed = true;
-      clearTimeout(stableTimer);
-      document.documentElement.classList.remove('app-loading');
-    }
-
-    // 오차가 없는 상태가 STABLE_MS(150ms) 동안 유지되어야 "안정됐다"고 보고 그제서야 보여줍니다.
-    // 그 사이 새 오차가 발견되면 타이머를 리셋해서 계속 가려진 채로 다시 기다립니다.
-    var STABLE_MS = 150;
-    function scheduleReveal() {
-      if (revealed) return;
-      clearTimeout(stableTimer);
-      stableTimer = setTimeout(reveal, STABLE_MS);
-    }
-
-    function correctResidualGap(attemptsLeft) {
+    function correctResidualGap() {
       if (!container) container = document.querySelector('.iphone-container');
       if (!container) return;
-      if (attemptsLeft === undefined) attemptsLeft = 8;
-
       var target = getViewportHeight();
       var rect = container.getBoundingClientRect();
       var diff = target - rect.bottom; // 양수면 컨테이너가 화면 하단보다 위에서 끝난다는 뜻(간격 존재)
-
-      if (Math.abs(diff) > 0.5 && attemptsLeft > 0) {
+      if (Math.abs(diff) > 0.5) {
         var current = parseFloat(
           getComputedStyle(document.documentElement).getPropertyValue('--app-height')
         ) || getViewportHeight();
         document.documentElement.style.setProperty('--app-height', (current + diff) + 'px');
-        // 아직 변화가 있었으니 "안정됐다"는 판정을 취소합니다.
-        clearTimeout(stableTimer);
-        requestAnimationFrame(function() {
-          correctResidualGap(attemptsLeft - 1);
-        });
-      } else {
-        // 오차는 없었지만, 조금 더 지켜본 뒤(STABLE_MS) 그때도 변화가 없으면 보여줍니다.
-        scheduleReveal();
       }
     }
 
     function refresh() {
       setAppHeight();
+      // 폰트 로딩, 렌더링 등으로 실제 배치가 한 프레임 뒤에 확정되는 경우가 있어
+      // 그린 직후 실측치로 한 번 더 오차를 잡아줍니다.
       requestAnimationFrame(function() {
-        requestAnimationFrame(function() {
-          correctResidualGap();
-        });
+        requestAnimationFrame(correctResidualGap);
       });
     }
 
@@ -179,14 +149,6 @@
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', refresh);
     }
-    // 안드로이드 크롬은 주소창/제스처 바가 완전히 자리 잡기까지
-    // 로드 후에도 약간의 시간차가 있을 수 있어, 지연된 시점에도 한 번씩 재확인합니다.
-    // (아직 reveal 전이라면 이 재확인들도 전부 화면이 가려진 상태에서 처리됩니다)
-    [100, 300, 600, 1200].forEach(function(delay) {
-      setTimeout(refresh, delay);
-    });
-    // 만약의 오류(스크립트 실패 등)로 화면이 영영 안 보이는 사고를 막기 위한 안전장치
-    setTimeout(reveal, 1800);
   })();
 </script>
 <title>History Screen - Serene Medical</title>
@@ -246,19 +208,6 @@
       display: flex;
       flex-direction: column;
       box-shadow: 0 0 20px rgba(0,0,0,0.1);
-      opacity: 1;
-      /* height는 애니메이션 대상에서 제외합니다. transition이 걸려있으면
-         JS가 측정하는 시점에 아직 애니메이션 중인 중간값을 읽어버려서,
-         보정이 계속 어긋나게 누적되는 문제가 있었습니다. 높이는 항상 즉시 반영하고,
-         화면 노출 자체는 아래 opacity 전환으로만 부드럽게 처리합니다. */
-      transition: opacity 0.18s ease;
-    }
-    /* 높이 보정이 끝나기 전까지는 화면을 가려서, 위치가 자리 잡는 튐 현상을
-       사용자가 보지 못하게 합니다. JS가 "완전히 안정됐다"고 판단한 뒤에만
-       한 번 페이드인됩니다. */
-    html.app-loading .iphone-container {
-      opacity: 0;
-      transition: none;
     }
     .main-scroll {
       flex: 1;
