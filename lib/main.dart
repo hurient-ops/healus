@@ -401,55 +401,41 @@ class _WebViewHomeScreenState extends ConsumerState<WebViewHomeScreen> {
     _hasRequestedInitialData = true;
     _pendingInitialRequests.clear();
     _pendingInitialRequests.addAll([
-      Opcodes.btBattDataReq,
       Opcodes.btPumpPidReq,
+      Opcodes.btPumpFwReq,
+      Opcodes.btBattDataReq,
+      Opcodes.btInjInfoReq,
       Opcodes.btLogInjQntReq,
       Opcodes.btEatValueReq,
       Opcodes.btBaseValueReq,
-      Opcodes.btInjInfoReq,
-      Opcodes.btPumpFwReq,
       Opcodes.btLogReq,
       Opcodes.btCurTimeInd,
     ]);
 
     final injectNotifier = ref.read(injectControllerProvider.notifier);
 
-    // 1. 배터리 잔량 요청
-    final batt = List<int>.filled(20, 0);
-    batt[0] = kStartCode;
-    batt[1] = Opcodes.btBattDataReq;
-    batt[2] = 0;
-    injectNotifier.queuePacket(batt);
-
-    // 2. 고유 PID 요청
+    // 1. 고유 PID 요청
     final pid = List<int>.filled(20, 0);
     pid[0] = kStartCode;
     pid[1] = Opcodes.btPumpPidReq;
     pid[2] = 0;
     injectNotifier.queuePacket(pid);
 
-    // 3. 금일 주입량 정보 요청
-    final qnt = List<int>.filled(20, 0);
-    qnt[0] = kStartCode;
-    qnt[1] = Opcodes.btLogInjQntReq;
-    qnt[2] = 0;
-    injectNotifier.queuePacket(qnt);
+    // 2. 펌웨어 버전 요청 (0x3E)
+    final fwReq = List<int>.filled(20, 0);
+    fwReq[0] = kStartCode;
+    fwReq[1] = Opcodes.btPumpFwReq;
+    fwReq[2] = 0;
+    injectNotifier.queuePacket(fwReq);
 
-    // 4. 식사 설정값 요청 (0x2D)
-    final eat = List<int>.filled(20, 0);
-    eat[0] = kStartCode;
-    eat[1] = Opcodes.btEatValueReq;
-    eat[2] = 0;
-    injectNotifier.queuePacket(eat);
+    // 3. 배터리 잔량 요청
+    final batt = List<int>.filled(20, 0);
+    batt[0] = kStartCode;
+    batt[1] = Opcodes.btBattDataReq;
+    batt[2] = 0;
+    injectNotifier.queuePacket(batt);
 
-    // 5. 24개 시간 구간 기초 설정값 요청 (0x2F)
-    final base = List<int>.filled(20, 0);
-    base[0] = kStartCode;
-    base[1] = Opcodes.btBaseValueReq;
-    base[2] = 0;
-    injectNotifier.queuePacket(base);
-
-    // 6. 인슐린 잔량 정보 요청 (0x15)
+    // 4. 인슐린 잔량 정보 요청 (0x15)
     final injInfo = List<int>.filled(20, 0);
     injInfo[0] = kStartCode;
     injInfo[1] = Opcodes.btInjInfoReq;
@@ -457,14 +443,28 @@ class _WebViewHomeScreenState extends ConsumerState<WebViewHomeScreen> {
     injInfo[3] = 0; // 식사 기준
     injectNotifier.queuePacket(injInfo);
 
-    // 6.5 펌웨어 버전 요청 (0x3E)
-    final fwReq = List<int>.filled(20, 0);
-    fwReq[0] = kStartCode;
-    fwReq[1] = Opcodes.btPumpFwReq;
-    fwReq[2] = 0;
-    injectNotifier.queuePacket(fwReq);
+    // 5. 금일 주입량 정보 요청
+    final qnt = List<int>.filled(20, 0);
+    qnt[0] = kStartCode;
+    qnt[1] = Opcodes.btLogInjQntReq;
+    qnt[2] = 0;
+    injectNotifier.queuePacket(qnt);
 
-    // 7. 이력 데이터 최초 1회 요청 (0x1D)
+    // 6. 식사 설정값 요청 (0x2D)
+    final eat = List<int>.filled(20, 0);
+    eat[0] = kStartCode;
+    eat[1] = Opcodes.btEatValueReq;
+    eat[2] = 0;
+    injectNotifier.queuePacket(eat);
+
+    // 7. 24개 시간 구간 기초 설정값 요청 (0x2F)
+    final base = List<int>.filled(20, 0);
+    base[0] = kStartCode;
+    base[1] = Opcodes.btBaseValueReq;
+    base[2] = 0;
+    injectNotifier.queuePacket(base);
+
+    // 8. 이력 데이터 최초 1회 요청 (0x1D)
     print("[DEBUG] main.dart: 이력 데이터 0x1D 전송 요청");
     final hist = List<int>.filled(20, 0);
     hist[0] = kStartCode;
