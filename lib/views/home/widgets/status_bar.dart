@@ -54,10 +54,10 @@ class StatusBar extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.04),
+        color: Colors.white.withValues(alpha: 0.04),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.white.withOpacity(0.08),
+          color: Colors.white.withValues(alpha: 0.08),
           width: 1,
         ),
       ),
@@ -71,7 +71,7 @@ class StatusBar extends ConsumerWidget {
               Text(
                 'HealUS 펌프 v0.80',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.9),
+                  color: Colors.white.withValues(alpha: 0.9),
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
                 ),
@@ -144,10 +144,10 @@ class _PulseStatusChipState extends State<_PulseStatusChip>
     final chipContent = Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: widget.color.withOpacity(0.15),
+        color: widget.color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: widget.color.withOpacity(0.4),
+          color: widget.color.withValues(alpha: 0.4),
           width: 1,
         ),
       ),
@@ -178,7 +178,7 @@ class _PulseStatusChipState extends State<_PulseStatusChip>
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: widget.color.withOpacity(_controller.value * 0.25),
+                color: widget.color.withValues(alpha: _controller.value * 0.25),
                 blurRadius: 8,
                 spreadRadius: 2 * _controller.value,
               ),

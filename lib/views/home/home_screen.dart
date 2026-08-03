@@ -93,9 +93,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(20.0),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.03),
+                      color: Colors.white.withValues(alpha: 0.03),
                       borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: Colors.white.withOpacity(0.05)),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -120,9 +120,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                               decoration: BoxDecoration(
-                                color: deepTealColor.withOpacity(0.2),
+                                color: deepTealColor.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: deepTealColor.withOpacity(0.4)),
+                                border: Border.all(color: deepTealColor.withValues(alpha: 0.4)),
                               ),
                               child: Row(
                                 children: [
@@ -146,7 +146,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           borderRadius: BorderRadius.circular(6),
                           child: LinearProgressIndicator(
                             value: (pumpState.insulinRemaining / 300.0).clamp(0.0, 1.0),
-                            backgroundColor: Colors.white.withOpacity(0.08),
+                            backgroundColor: Colors.white.withValues(alpha: 0.08),
                             valueColor: const AlwaysStoppedAnimation<Color>(primaryColor),
                             minHeight: 8,
                           ),
@@ -168,9 +168,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       padding: const EdgeInsets.all(16.0),
                       margin: const EdgeInsets.only(bottom: 16.0),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.02),
+                        color: Colors.white.withValues(alpha: 0.02),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.white.withOpacity(0.06)),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -191,7 +191,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           const SizedBox(height: 10),
                           LinearProgressIndicator(
                             value: syncState.basalSyncProgress,
-                            backgroundColor: Colors.white.withOpacity(0.08),
+                            backgroundColor: Colors.white.withValues(alpha: 0.08),
                             valueColor: const AlwaysStoppedAnimation<Color>(deepTealColor),
                           ),
                         ],
@@ -251,7 +251,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           final db = ref.read(pumpDatabaseProvider);
                           await db.clearLogs();
                           ref.read(basalSyncControllerProvider.notifier).reloadLogsFromDb();
-                          if (mounted) {
+                          if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text("로컬 DB의 이력 정보가 전부 비워졌습니다.")),
                             );
@@ -273,7 +273,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ),
                       Text(
                         "누적 ${syncState.logs.length}건",
-                        style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 12),
+                        style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 12),
                       ),
                     ],
                   ),
@@ -284,7 +284,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 40.0),
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.01),
+                        color: Colors.white.withValues(alpha: 0.01),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: const Text(
@@ -303,9 +303,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           margin: const EdgeInsets.only(bottom: 8.0),
                           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.02),
+                            color: Colors.white.withValues(alpha: 0.02),
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.white.withOpacity(0.04)),
+                            border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -320,7 +320,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   const SizedBox(height: 4),
                                   Text(
                                     "기초: ${log.baseTotal}U | 식사: ${log.eatTotal}U | 추가: ${log.appendTotal}U",
-                                    style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12),
+                                    style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12),
                                   ),
                                 ],
                               ),
@@ -362,9 +362,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       child: Container(
         padding: const EdgeInsets.all(16.0),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.02),
+          color: Colors.white.withValues(alpha: 0.02),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withOpacity(0.05)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
         ),
         child: Row(
           children: [
@@ -382,7 +382,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 10),
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 10),
                   ),
                 ],
               ),
@@ -402,9 +402,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
-        color: Colors.redAccent.withOpacity(0.02),
+        color: Colors.redAccent.withValues(alpha: 0.02),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.redAccent.withOpacity(0.15)),
+        border: Border.all(color: Colors.redAccent.withValues(alpha: 0.15)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -436,12 +436,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
               ElevatedButton(
                 onPressed: () => errorNotifier.setErrorForce(PumpErrorType.needleClogged, DateTime.now()),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red[900]?.withOpacity(0.4), foregroundColor: Colors.white, textStyle: const TextStyle(fontSize: 11)),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red[900]?.withValues(alpha: 0.4), foregroundColor: Colors.white, textStyle: const TextStyle(fontSize: 11)),
                 child: const Text("바늘 막힘 에러 트리거"),
               ),
               ElevatedButton(
                 onPressed: () => errorNotifier.setErrorForce(PumpErrorType.lowBatt, DateTime.now()),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red[900]?.withOpacity(0.4), foregroundColor: Colors.white, textStyle: const TextStyle(fontSize: 11)),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red[900]?.withValues(alpha: 0.4), foregroundColor: Colors.white, textStyle: const TextStyle(fontSize: 11)),
                 child: const Text("배터리 부족 에러 트리거"),
               ),
               ElevatedButton(

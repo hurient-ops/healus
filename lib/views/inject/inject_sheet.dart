@@ -61,7 +61,7 @@ class _InjectSheetState extends ConsumerState<InjectSheet> {
           backgroundColor: const Color(0xFF1E1E24), // 프리미엄 딥다크 배경
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
-            side: BorderSide(color: Colors.white.withOpacity(0.08)),
+            side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
           ),
           title: Row(
             children: [
@@ -70,7 +70,7 @@ class _InjectSheetState extends ConsumerState<InjectSheet> {
               Text(
                 '투약 정보 재확인',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.95),
+                  color: Colors.white.withValues(alpha: 0.95),
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
@@ -83,16 +83,16 @@ class _InjectSheetState extends ConsumerState<InjectSheet> {
             children: [
               Text(
                 '인슐린 주입을 개시하기 전에 아래 정보를 최종 검증하십시오.',
-                style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 13),
               ),
               const SizedBox(height: 16),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.03),
+                  color: Colors.white.withValues(alpha: 0.03),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white.withOpacity(0.06)),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
                 ),
                 child: Column(
                   children: [
@@ -132,7 +132,7 @@ class _InjectSheetState extends ConsumerState<InjectSheet> {
               onPressed: () => Navigator.of(context).pop(),
               child: Text(
                 '취소',
-                style: TextStyle(color: Colors.white.withOpacity(0.6), fontWeight: FontWeight.bold),
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontWeight: FontWeight.bold),
               ),
             ),
             ElevatedButton(
@@ -175,7 +175,7 @@ class _InjectSheetState extends ConsumerState<InjectSheet> {
       decoration: BoxDecoration(
         color: const Color(0xFF1E1E24), // 프리미엄 딥다크 배경
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -227,7 +227,7 @@ class _InjectSheetState extends ConsumerState<InjectSheet> {
               ),
               Text(
                 '최대 15.0 Unit',
-                style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 12),
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 12),
               ),
             ],
           ),
@@ -246,11 +246,11 @@ class _InjectSheetState extends ConsumerState<InjectSheet> {
                     suffixText: 'Unit',
                     suffixStyle: const TextStyle(color: Colors.white60, fontSize: 16),
                     filled: true,
-                    fillColor: Colors.white.withOpacity(0.03),
+                    fillColor: Colors.white.withValues(alpha: 0.03),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide(color: Colors.white.withOpacity(0.08)),
+                      borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -322,10 +322,10 @@ class _InjectSheetState extends ConsumerState<InjectSheet> {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF004D40).withOpacity(0.2) : Colors.white.withOpacity(0.02),
+          color: isSelected ? const Color(0xFF004D40).withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.02),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? const Color(0xFF004D40) : Colors.white.withOpacity(0.06),
+            color: isSelected ? const Color(0xFF004D40) : Colors.white.withValues(alpha: 0.06),
             width: isSelected ? 1.5 : 1,
           ),
         ),
@@ -359,9 +359,9 @@ class _InjectSheetState extends ConsumerState<InjectSheet> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.04),
+          color: Colors.white.withValues(alpha: 0.04),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withOpacity(0.06)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
         ),
         child: Text(
           label,
