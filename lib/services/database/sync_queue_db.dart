@@ -18,30 +18,44 @@ class SyncQueueDb {
 
     _db = await openDatabase(
       pathString,
-      version: 1,
+      version: 2,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE unsynced_packets (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            device_mac TEXT NOT NULL,
+            pump_id TEXT NOT NULL,
             direction TEXT NOT NULL,
             payload_hex TEXT NOT NULL,
             timestamp TEXT NOT NULL
           )
         ''');
       },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('DROP TABLE IF EXISTS unsynced_packets');
+          await db.execute('''
+            CREATE TABLE unsynced_packets (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              pump_id TEXT NOT NULL,
+              direction TEXT NOT NULL,
+              payload_hex TEXT NOT NULL,
+              timestamp TEXT NOT NULL
+            )
+          ''');
+        }
+      },
     );
   }
 
-  /// 새로운 패킷을 오프라인 큐에 저장
-  Future<void> insertPacket(String deviceMac, String direction, String payloadHex, String timestamp) async {
+  /// 새로운 패킷을 오프라인 큐에 추가
+  Future<void> insertPacket(String pumpId, String direction, String payloadHex, String timestamp) async {
     final db = _db;
     if (db == null) return;
 
     await db.insert(
       'unsynced_packets',
       {
-        'device_mac': deviceMac,
+        'pump_id': pumpId,
         'direction': direction,
         'payload_hex': payloadHex,
         'timestamp': timestamp,

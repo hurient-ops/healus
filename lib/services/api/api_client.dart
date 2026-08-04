@@ -27,7 +27,7 @@ class ApiClient {
   }
 
   /// 펌프 이력 데이터(Bulk) 서버로 전송
-  Future<void> postBulkLogs(List<PumpLogModel> logs, String deviceMac) async {
+  Future<void> postBulkLogs(List<PumpLogModel> logs, String pumpId) async {
     if (!CloudConfig.enableCloudSync) return;
     if (logs.isEmpty) return;
 
@@ -35,7 +35,7 @@ class ApiClient {
       final url = Uri.parse('${CloudConfig.serverBaseUrl}/api/logs');
       final payload = {
         "logs": logs.map((log) => {
-          "device_mac": deviceMac,
+          "pump_id": pumpId,
           "month": log.month,
           "day": log.day,
           "base_total": log.baseTotal,
@@ -65,15 +65,15 @@ class ApiClient {
   }
 
   /// 원시 패킷(Raw Packet) 오프라인 큐에 저장 후 전송 트리거
-  Future<void> bufferRawPacket(List<int> packet, String direction, String deviceMac) async {
+  Future<void> bufferRawPacket(List<int> packet, String direction, String pumpId) async {
     if (!CloudConfig.enableCloudSync) return;
+    
+    final payloadHex = packet.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+    final timestamp = DateTime.now().toUtc().toIso8601String();
 
-    final payloadHex = packet.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ');
-    final timestamp = DateTime.now().toIso8601String();
-
-    // 1. 메모리가 아닌 무조건 로컬 SQLite 큐에 먼저 저장 (Offline-First)
     await _syncQueueDb.init();
-    await _syncQueueDb.insertPacket(deviceMac, direction, payloadHex, timestamp);
+    await _syncQueueDb.insertPacket(pumpId, direction, payloadHex, timestamp);
+    print("[ApiClient] Buffered raw packet. pump_id: $pumpId, direction: $direction, payload: $payloadHex");
 
     // 2. 백그라운드 동기화 시도
     _flushOfflineQueue();

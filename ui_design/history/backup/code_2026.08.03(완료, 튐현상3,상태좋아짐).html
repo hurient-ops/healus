@@ -1,4 +1,4 @@
-<!DOCTYPE html><html class="app-loading" lang="ko"><head>
+<!DOCTYPE html><html lang="ko"><head>
 <script>
   (function() {
     const CONFIG_USE_TIMER = true; 
@@ -104,12 +104,7 @@
   // 정확히 일치하지 않는 것으로 보입니다(엣지투엣지 렌더링 등). 그래서 "예측값을
   // 한 번 넣는 것"만으로는 부족하고, 실제로 그려진 결과(.iphone-container의 진짜
   // 위치)를 직접 재서 목표(화면 맨 아래)에 닿을 때까지 미세 조정하는 방식이 필요합니다.
-  //
-  // 다만 이 반복 보정이 여러 프레임에 걸쳐 화면을 다시 그리게 만들어서, 이 기기에서는
-  // 그 과정이 "서서히 나타나는" 것처럼 보이는 부작용이 있었습니다. 그래서:
-  // 1) 보정 횟수를 최소화하고 (20회 -> 5회)
-  // 2) opacity(중간값 있는 페이드)가 아니라 visibility(켜짐/꺼짐만 있고 중간 단계 없음)로
-  //    보정이 끝나기 전까지 완전히 숨겨서, 재그리기 과정 자체를 사용자가 볼 수 없게 합니다.
+  // 페이드인/대기 같은 연출은 넣지 않고, 보정 자체만 최대한 빠르게(프레임 단위) 반복합니다.
   (function() {
     var container;
 
@@ -122,31 +117,16 @@
       document.documentElement.style.setProperty('--app-height', getViewportHeight() + 'px');
     }
 
-    var revealed = false;
-    // 예정된 지연 재확인(최대 1200ms)이 모두 끝나기 전까지는 절대 화면을
-    // 보여주지 않습니다. 노출 "이전"에 필요한 조정은 전부 끝내고, 노출
-    // "이후"에는 값이 다시 바뀌는 일이 없도록 순서를 보장합니다.
-    var allChecksScheduledUntil = 1200;
-
-    function reveal(force) {
-      if (revealed) return;
-      if (!force && (Date.now() - startTime) < allChecksScheduledUntil) return;
-      revealed = true;
-      document.documentElement.classList.remove('app-loading');
-    }
-
-    var startTime = Date.now();
-
     function correctResidualGap(attemptsLeft) {
       if (!container) container = document.querySelector('.iphone-container');
-      if (!container) { reveal(true); return; }
-      if (attemptsLeft === undefined) attemptsLeft = 5;
+      if (!container) return;
+      if (attemptsLeft === undefined) attemptsLeft = 20;
 
       var target = getViewportHeight();
       var rect = container.getBoundingClientRect();
       var diff = target - rect.bottom; // 양수면 컨테이너가 화면 하단보다 위에서 끝난다는 뜻(간격 존재)
 
-      if (Math.abs(diff) > 1.5 && attemptsLeft > 0) {
+      if (Math.abs(diff) > 0.5 && attemptsLeft > 0) {
         var current = parseFloat(
           getComputedStyle(document.documentElement).getPropertyValue('--app-height')
         ) || getViewportHeight();
@@ -154,8 +134,6 @@
         requestAnimationFrame(function() {
           correctResidualGap(attemptsLeft - 1);
         });
-      } else {
-        reveal();
       }
     }
 
@@ -166,33 +144,18 @@
       });
     }
 
-    // resize류 이벤트가 우리 자신의 높이 변경 때문에 다시 발생하는 되먹임 루프를
-    // 막기 위해, 이 이벤트들에는 디바운스를 적용합니다. 즉 짧은 시간 안에 같은
-    // 이벤트가 계속 발생해도 실제 보정은 마지막 한 번만 실행됩니다.
-    var debounceTimer = null;
-    function debouncedRefresh() {
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(refresh, 120);
-    }
-
     refresh();
     window.addEventListener('load', refresh);
-    window.addEventListener('resize', debouncedRefresh);
-    window.addEventListener('orientationchange', debouncedRefresh);
+    window.addEventListener('resize', refresh);
+    window.addEventListener('orientationchange', refresh);
     if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', debouncedRefresh);
+      window.visualViewport.addEventListener('resize', refresh);
     }
-    // 이 기기는 주소창/제스처 바가 완전히 자리 잡기까지 로드 후에도 시간차가 있을 수 있어
-    // 지연된 시점에도 재확인합니다. (아직 reveal 전이면 계속 숨겨진 채로 처리됩니다)
+    // 이 기기는 주소창/제스처 바가 자리 잡기까지 로드 후에도 시간차가 있을 수 있어
+    // 지연된 시점에도 재확인합니다. (연출 없이 조용히 값만 맞춥니다)
     [100, 300, 600, 1200].forEach(function(delay) {
       setTimeout(refresh, delay);
     });
-    // 마지막 지연 재확인(1200ms) 이후, 그 보정이 끝날 시간을 조금 더 준 뒤
-    // 확실하게(강제로) 화면을 보여줍니다. 이 시점 이후로는 값이 바뀌어도
-    // 사용자 눈에 보이지만, 그럴 가능성은 이미 최소화된 상태입니다.
-    setTimeout(function() { reveal(true); }, 1350);
-    // 만약의 오류로 화면이 영영 안 보이는 사고를 막기 위한 최종 안전장치
-    setTimeout(function() { reveal(true); }, 2000);
   })();
 </script>
 <title>History Screen - Serene Medical</title>
@@ -252,12 +215,15 @@
       display: flex;
       flex-direction: column;
       box-shadow: 0 0 20px rgba(0,0,0,0.1);
+      /* JS 높이 보정이 몇 프레임에 걸쳐 진행되는 동안 화면을 짧게 가려둡니다.
+         height와는 무관한 opacity만 다루는 순수 CSS 애니메이션이라, 어떤 JS 로직과도
+         충돌하지 않고 항상 독립적으로(JS 성공 여부와 무관하게) 동작합니다. */
+      opacity: 0;
+      animation: app-reveal 0.2s ease 260ms forwards;
     }
-    /* 높이 보정이 여러 프레임에 걸쳐 화면을 다시 그리는 과정을 감춥니다.
-       opacity(중간값이 있는 페이드)가 아니라 visibility(켜짐/꺼짐만 있고 중간
-       단계가 없음)를 써서, 재그리기 자체가 사용자 눈에 보이지 않게 합니다. */
-    html.app-loading .iphone-container {
-      visibility: hidden;
+    @keyframes app-reveal {
+      from { opacity: 0; }
+      to { opacity: 1; }
     }
     .main-scroll {
       flex: 1;

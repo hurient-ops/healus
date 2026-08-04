@@ -4,12 +4,12 @@ import 'api_client.dart';
 class RawPacketEvent {
   final List<int> packet;
   final String direction;
-  final String deviceMac;
+  final String pumpId;
 
   RawPacketEvent({
     required this.packet,
     required this.direction,
-    required this.deviceMac,
+    required this.pumpId,
   });
 }
 
@@ -22,7 +22,7 @@ class CloudSyncService {
   CloudSyncService._internal() {
     // Observer 패턴: 이벤트가 발생하면 ApiClient를 통해 버퍼링/전송
     _packetStreamController.stream.listen((event) {
-      ApiClient().bufferRawPacket(event.packet, event.direction, event.deviceMac);
+      ApiClient().bufferRawPacket(event.packet, event.direction, event.pumpId);
     });
   }
 
@@ -31,11 +31,11 @@ class CloudSyncService {
 
   /// BLE 패킷 전송 시 호출 (TX)
   void emitTxPacket(List<int> packet, {String? deviceMac}) {
-    _packetStreamController.add(RawPacketEvent(packet: packet, direction: 'TX', deviceMac: currentPumpPid));
+    _packetStreamController.add(RawPacketEvent(packet: packet, direction: 'TX', pumpId: currentPumpPid));
   }
 
   /// BLE 패킷 수신 시 호출 (RX)
   void emitRxPacket(List<int> packet, {String? deviceMac}) {
-    _packetStreamController.add(RawPacketEvent(packet: packet, direction: 'RX', deviceMac: currentPumpPid));
+    _packetStreamController.add(RawPacketEvent(packet: packet, direction: 'RX', pumpId: currentPumpPid));
   }
 }

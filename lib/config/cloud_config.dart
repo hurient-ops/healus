@@ -6,5 +6,5 @@ class CloudConfig {
   /// 로컬 에뮬레이터 테스트용: http://10.0.2.2:8000
   /// 로컬 네트워크 실기기 테스트용: http://[PC_IP]:8000
   /// 실제 클라우드 서버 배포 시: https://api.healus.io
-  static const String serverBaseUrl = "http://10.0.2.2:8000";
+  static const String serverBaseUrl = "https://healus-backend.onrender.com";
 }
