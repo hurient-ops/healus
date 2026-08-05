@@ -224,6 +224,10 @@ class BasalSyncController extends StateNotifier<BasalSyncState> {
           await _db.keepOnlyLast180Days();
           await reloadLogsFromDb();
 
+          // 클라우드로 오늘의 요약 데이터 즉시 전송
+          final pumpPid = CloudSyncService().currentPumpPid ?? 'UNKNOWN_PID';
+          ApiClient().postBulkLogs([log], pumpPid);
+
           if (isRealPacket) {
             state = state.copyWith(hasReceivedRealLogs: true);
           }
