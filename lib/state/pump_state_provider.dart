@@ -162,6 +162,11 @@ class PumpStateData {
 class PumpStateNotifier extends StateNotifier<PumpStateData> {
   PumpStateNotifier() : super(PumpStateData(basalRates: List.filled(24, 0.0)));
 
+  void _syncPumpStatusToCloud(PumpStateData newState) {
+    final pumpPid = CloudSyncService().currentPumpPid ?? 'UNKNOWN_PID';
+    ApiClient().postPumpStatus(newState.batteryLevel, newState.insulinRemaining, pumpPid);
+  }
+
   /// 20Byte BLE 논리 패킷을 입력받아 전역 상태를 업데이트합니다.
   void handleIncomingPacket(List<int> packet, {bool isRealPacket = false}) {
     if (packet.length != 20 || packet[0] != kStartCode) {
@@ -196,6 +201,7 @@ class PumpStateNotifier extends StateNotifier<PumpStateData> {
             hasReceivedBattery: true,
             hasReceivedRealBattery: isRealPacket ? true : state.hasReceivedRealBattery,
           );
+          _syncPumpStatusToCloud(state);
         }
         break;
 
@@ -212,6 +218,7 @@ class PumpStateNotifier extends StateNotifier<PumpStateData> {
             hasReceivedInsulin: true,
             hasReceivedRealInsulin: isRealPacket ? true : state.hasReceivedRealInsulin,
           );
+          _syncPumpStatusToCloud(state);
         }
         break;
 
@@ -228,6 +235,7 @@ class PumpStateNotifier extends StateNotifier<PumpStateData> {
             hasReceivedInsulin: true,
             hasReceivedRealInsulin: isRealPacket ? true : state.hasReceivedRealInsulin,
           );
+          _syncPumpStatusToCloud(state);
         }
         break;
 

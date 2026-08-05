@@ -68,6 +68,29 @@ class ApiClient {
     }
   }
 
+  Future<void> postPumpStatus(int battery, double insulin, String pumpId) async {
+    if (!CloudConfig.enableCloudSync) return;
+    if (pumpId.isEmpty || pumpId == 'EMPTY' || pumpId == 'UNKNOWN_PID') {
+      print('[ApiClient] Blocked sending pump status because pumpId is invalid: $pumpId');
+      return;
+    }
+
+    try {
+      final url = Uri.parse('${CloudConfig.serverBaseUrl}/api/logs/pump-status/$pumpId');
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'battery_level': battery,
+          'insulin_remaining': insulin,
+        }),
+      );
+      print('[ApiClient] postPumpStatus success: ${response.body}');
+    } catch (e) {
+      print('[ApiClient] postPumpStatus error: $e');
+    }
+  }
+
   /// 원시 패킷(Raw Packet) 오프라인 큐에 저장 후 전송 트리거
   Future<void> bufferRawPacket(List<int> packet, String direction, String pumpId) async {
     if (!CloudConfig.enableCloudSync) return;
