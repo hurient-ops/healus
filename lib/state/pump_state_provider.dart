@@ -279,6 +279,7 @@ class PumpStateNotifier extends StateNotifier<PumpStateData> {
           hasReceivedInsulin: true,
           hasReceivedRealInsulin: isRealPacket ? true : state.hasReceivedRealInsulin,
         );
+        _syncPumpStatusToCloud(state);
         break;
 
       case Opcodes.btExerciseInjStopInd:
