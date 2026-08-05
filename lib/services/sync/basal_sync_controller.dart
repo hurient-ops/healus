@@ -7,6 +7,7 @@ import '../database/local_db.dart';
 import '../../globals.dart';
 import 'package:flutter/material.dart';
 import '../api/api_client.dart';
+import '../api/cloud_sync_service.dart';
 import '../../state/pump_state_provider.dart';
 
 /// 24시간 기초 설정 및 이력 데이터 동기화 상태 모델
