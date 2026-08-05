@@ -3,6 +3,7 @@ import '../services/ble/opcodes.dart';
 import '../services/ble/packet_parser.dart';
 import '../services/api/cloud_sync_service.dart';
 import '../services/database/sync_queue_db.dart';
+import '../services/api/api_client.dart';
 
 /// HealUs 펌프의 전역 상태 모델
 class PumpStateData {
