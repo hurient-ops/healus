@@ -30,6 +30,10 @@ class ApiClient {
   Future<void> postBulkLogs(List<PumpLogModel> logs, String pumpId) async {
     if (!CloudConfig.enableCloudSync) return;
     if (logs.isEmpty) return;
+    if (pumpId.isEmpty || pumpId == 'EMPTY' || pumpId == 'UNKNOWN_PID') {
+      print('[ApiClient] Blocked bulk logs transmission: Invalid pumpId "$pumpId"');
+      return;
+    }
 
     try {
       final url = Uri.parse('${CloudConfig.serverBaseUrl}/api/logs');
@@ -86,8 +90,14 @@ class ApiClient {
 
     try {
       await _syncQueueDb.init();
-      final packetsToSend = await _syncQueueDb.getUnsyncedPackets(limit: 50);
+      var packetsToSend = await _syncQueueDb.getUnsyncedPackets(limit: 50);
       
+      // 진짜 PID가 확인되지 않은 패킷은 전송하지 않고 보류
+      packetsToSend = packetsToSend.where((p) {
+        final pid = p['pump_id'] as String;
+        return pid.isNotEmpty && pid != 'EMPTY' && pid != 'UNKNOWN_PID';
+      }).toList();
+
       if (packetsToSend.isEmpty) {
         _isSyncing = false;
         return;

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/ble/opcodes.dart';
 import '../services/ble/packet_parser.dart';
 import '../services/api/cloud_sync_service.dart';
+import '../services/database/sync_queue_db.dart';
 
 /// HealUs 펌프의 전역 상태 모델
 class PumpStateData {
@@ -379,6 +380,10 @@ class PumpStateNotifier extends StateNotifier<PumpStateData> {
           final pidBytes = packet.sublist(3, 19);
           final String pidStr = String.fromCharCodes(pidBytes).trim();
           CloudSyncService().currentPumpPid = pidStr;
+          
+          // 오프라인 큐에 UNKNOWN_PID로 대기중이던 패킷들을 진짜 PID로 업데이트
+          SyncQueueDb().updateUnknownPumpIds(pidStr);
+
           state = state.copyWith(pumpPid: pidStr);
         }
         break;

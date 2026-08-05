@@ -86,6 +86,19 @@ class SyncQueueDb {
     }
   }
 
+  /// UNKNOWN_PID 거나 비어있는 패킷들을 실제 PID로 일괄 업데이트
+  Future<void> updateUnknownPumpIds(String realPumpId) async {
+    final db = _db;
+    if (db == null) return;
+    
+    await db.update(
+      'unsynced_packets',
+      {'pump_id': realPumpId},
+      where: 'pump_id = ? OR pump_id = ?',
+      whereArgs: ['UNKNOWN_PID', ''],
+    );
+  }
+
   /// 서버로 전송할 미전송 패킷 가져오기 (가장 오래된 것부터, 최대 limit개)
   Future<List<Map<String, dynamic>>> getUnsyncedPackets({int limit = 100}) async {
     final db = _db;
