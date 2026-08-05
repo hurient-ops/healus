@@ -76,7 +76,7 @@ class ApiClient {
     }
 
     try {
-      final url = Uri.parse('${CloudConfig.serverBaseUrl}/api/logs/pump-status/$pumpId');
+      final url = Uri.parse('${CloudConfig.serverBaseUrl}/api/pump-status/$pumpId');
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
