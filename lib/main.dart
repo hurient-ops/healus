@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,6 +22,22 @@ import 'services/error/error_interceptor.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+
+@pragma('vm:entry-point')
+void startCallback() {
+  FlutterForegroundTask.setTaskHandler(EmptyTaskHandler());
+}
+
+class EmptyTaskHandler extends TaskHandler {
+  @override
+  Future<void> onStart(DateTime timestamp, SendPort? sendPort) async {}
+  @override
+  void onRepeatEvent(DateTime timestamp, SendPort? sendPort) {}
+  @override
+  Future<void> onDestroy(DateTime timestamp, SendPort? sendPort) async {}
+}
+
 void main() async {
   // 1. Flutter 바인딩 초기화 보장
     WidgetsFlutterBinding.ensureInitialized();
@@ -101,8 +118,49 @@ class _WebViewHomeScreenState extends ConsumerState<WebViewHomeScreen> {
   @override
   void initState() {
     super.initState();
+    _initForegroundTask();
     _initWebViewController();
     _subscribeToBleService();
+  }
+
+  void _initForegroundTask() {
+    FlutterForegroundTask.init(
+      androidNotificationOptions: AndroidNotificationOptions(
+        channelId: 'healus_foreground',
+        channelName: 'HealUs 연결 유지',
+        channelDescription: '인슐린 펌프와의 지속적인 연결을 위한 알림입니다.',
+        channelImportance: NotificationChannelImportance.LOW,
+        priority: NotificationPriority.LOW,
+      ),
+      iosNotificationOptions: const IOSNotificationOptions(
+        showNotification: false,
+        playSound: false,
+      ),
+      foregroundTaskOptions: ForegroundTaskOptions(
+        autoRunOnBoot: false,
+        autoRunOnMyPackageReplaced: false,
+        allowWakeLock: true,
+        allowWifiLock: true,
+      ),
+    );
+  }
+
+  Future<void> _startForegroundTask() async {
+    final NotificationPermission notificationPermissionStatus =
+        await FlutterForegroundTask.checkNotificationPermission();
+    if (notificationPermissionStatus != NotificationPermission.granted) {
+      await FlutterForegroundTask.requestNotificationPermission();
+    }
+    if (await FlutterForegroundTask.isRunningService) return;
+    await FlutterForegroundTask.startService(
+      notificationTitle: 'HealUs',
+      notificationText: '인슐린 펌프와 연결 중입니다.',
+      callback: startCallback,
+    );
+  }
+
+  void _stopForegroundTask() {
+    FlutterForegroundTask.stopService();
   }
 
   /// 사용자가 수동으로 패킷 바이트를 직접 타이핑하여 네이티브 스트림에 주입하는 다이얼로그
@@ -477,7 +535,11 @@ class _WebViewHomeScreenState extends ConsumerState<WebViewHomeScreen> {
       _startBatteryPollTimer();
     }
     if (_qntTimer == null) {
-      _startQntPollTimer();
+      Future.delayed(const Duration(seconds: 10), () {
+        if (mounted) {
+          _startQntPollTimer();
+        }
+      });
     }
   }
 
@@ -497,6 +559,7 @@ class _WebViewHomeScreenState extends ConsumerState<WebViewHomeScreen> {
         setState(() {
           _isConnectingDevice = false;
         });
+        _startForegroundTask(); // 연결 성공 시 포그라운드 서비스 시작
         // 연결 완료(실제 또는 테스트 모드) 후 비밀번호 입력 페이지 서빙
         // 테스트 모드 시 비밀번호는 "000000"으로 자동 설정됨
         _loadInterceptedPasswordPage();

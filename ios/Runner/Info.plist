@@ -72,5 +72,9 @@
 	<string>인슐린 펌프 기기와의 통신을 위해 블루투스 권한이 필요합니다.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>블루투스 기기 스캔을 위해 위치 권한이 필요합니다.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>bluetooth-central</string>
+	</array>
 </dict>
 </plist>
