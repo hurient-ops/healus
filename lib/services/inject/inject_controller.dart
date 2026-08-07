@@ -36,6 +36,13 @@ class InjectController extends StateNotifier<List<List<int>>> {
     _processQueue();
   }
 
+  /// 블루투스 연결 단절 시 큐에 남아있는 오염된 패킷들을 일괄 폐기합니다.
+  void clearQueue() {
+    print("[DEBUG] InjectController.clearQueue: 큐를 비웁니다. 폐기된 패킷 수: ${state.length}");
+    state = [];
+    _isProcessing = false;
+  }
+
   /// 인슐린 주입 요청 (BT_INJ_REQ, 0x17)
   /// [injVal]: 주입할 인슐린 양 (Double Unit)
   /// [injSel]: 주입 유형 (0: 식사주입, 1: 추가주입)

@@ -5,6 +5,7 @@ import 'dart:isolate';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'services/database/local_db.dart';
@@ -121,6 +122,21 @@ class _WebViewHomeScreenState extends ConsumerState<WebViewHomeScreen> {
     _initForegroundTask();
     _initWebViewController();
     _subscribeToBleService();
+    _checkAndAutoConnect();
+  }
+
+  Future<void> _checkAndAutoConnect() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedMac = prefs.getString('saved_ble_mac');
+    if (savedMac != null && savedMac.isNotEmpty) {
+      print("저장된 기기($savedMac) 발견 -> 앱 시작 시 백그라운드 자동 연결 루틴 가동");
+      final bleService = ref.read(bleServiceProvider);
+      try {
+        await bleService.connect(savedMac);
+      } catch (e) {
+        print("초기 자동 연결 실패 (백그라운드에서 계속 시도됨): $e");
+      }
+    }
   }
 
   void _initForegroundTask() {
@@ -543,6 +559,27 @@ class _WebViewHomeScreenState extends ConsumerState<WebViewHomeScreen> {
     }
   }
 
+  void _onLogicalConnectionEstablished() {
+    print("[DEBUG] 논리적 연결(핸드셰이크) 완료. 폴링 타이머 및 상태 동기화 기동");
+    _startBatteryPollTimer();
+    _startQntPollTimer();
+
+    Future.delayed(const Duration(seconds: 1), () {
+      try {
+        if (ref.read(bleServiceProvider).isConnected) {
+          print("[DEBUG] 재연결/초기연결 완료: 펌프 현재 상태(0x04) 요청");
+          final stateReqPacket = List<int>.filled(20, 0);
+          stateReqPacket[0] = kStartCode;
+          stateReqPacket[1] = Opcodes.btStateReq;
+          stateReqPacket[2] = 0;
+          ref.read(bleServiceProvider).sendPacket(stateReqPacket);
+        }
+      } catch (e) {
+        print("[DEBUG] 상태 요청 실패: $e");
+      }
+    });
+  }
+
   /// 장비 연결 및 핸드셰이크 시퀀스를 수행하는 비동기 트리거
   Future<void> _startDeviceConnection(String targetMac) async {
     setState(() {
@@ -553,16 +590,19 @@ class _WebViewHomeScreenState extends ConsumerState<WebViewHomeScreen> {
     _hasRequestedInitialData = false;
 
     try {
-      await ref.read(bleHandshakeControllerProvider.notifier).connectAndHandshake(targetMac);
+      final success = await ref.read(bleHandshakeControllerProvider.notifier).connectAndHandshake(targetMac);
 
       if (mounted) {
         setState(() {
           _isConnectingDevice = false;
         });
-        _startForegroundTask(); // 연결 성공 시 포그라운드 서비스 시작
-        // 연결 완료(실제 또는 테스트 모드) 후 비밀번호 입력 페이지 서빙
-        // 테스트 모드 시 비밀번호는 "000000"으로 자동 설정됨
-        _loadInterceptedPasswordPage();
+        if (success) {
+          _onLogicalConnectionEstablished();
+          _startForegroundTask(); // 연결 성공 시 포그라운드 서비스 시작
+          // 연결 완료(실제 또는 테스트 모드) 후 비밀번호 입력 페이지 서빙
+          // 테스트 모드 시 비밀번호는 "000000"으로 자동 설정됨
+          _loadInterceptedPasswordPage();
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -615,24 +655,30 @@ class _WebViewHomeScreenState extends ConsumerState<WebViewHomeScreen> {
         }
       });
 
-      // 2. 연결 유실 감지 시 테스트 모드 전환 처리
+      // 2. 연결 유실 감지 시 재연결 대기 및 패킷 큐 폐기
       _bleConnectionSub = bleService.connectionStateStream.listen((newState) {
         if (!newState) {
-          print("BLE 연결 끊김 발생 -> 테스트 모드로 자동 스위칭 시도");
+          print("BLE 연결 끊김 발생 -> 재연결 대기 상태로 전환 (테스트 모드 자동전환 해제)");
           _hasRequestedInitialData = false; // 연결 끊김 시 1회성 플래그 초기화
           _stopBatteryPollTimer();
           _stopQntPollTimer();
           
-          if (!kReleaseMode) {
-            ref.read(testModeProvider.notifier).state = true;
-          }
+          // 오염된 패킷 큐 강제 삭제 (이전 명령들이 재연결 시 일괄 전송되는 사고 방지)
+          ref.read(injectControllerProvider.notifier).clearQueue();
+          
+          // UI 주입 중 멈춤 상태 강제 초기화
+          ref.read(pumpStateProvider.notifier).resetInjectingState();
           
           // 웹뷰에 연결상태 통보 (필요시 새로고침)
           _syncStateToWebview();
         } else {
-          // 기기 연결 수립 시 배터리 30분 폴링 기동
-          _startBatteryPollTimer();
-          _startQntPollTimer();
+          // 물리적 연결 성공. 
+          // 펌프 규격상 백그라운드 재연결 시에는 0x02, 0x41 핸드셰이크가 불필요하며, 
+          // 앱이 이미 비밀번호를 알고 있으므로 즉시 논리적 연결 상태로 취급하여 0x04를 쏜다.
+          if (!_isConnectingDevice) {
+             print("[DEBUG] 백그라운드 물리적 재연결 감지! 별도 핸드셰이크 없이 즉시 논리 상태로 복귀...");
+             _onLogicalConnectionEstablished();
+          }
         }
       });
     });
@@ -746,7 +792,8 @@ class _WebViewHomeScreenState extends ConsumerState<WebViewHomeScreen> {
     if (message.contains("BLE Command Sent: [DISCONNECT]")) {
       print("[DEBUG] main.dart: Webview requested DISCONNECT");
       ref.read(testModeProvider.notifier).state = false; // 테스트 모드 비활성화
-      ref.read(bleServiceProvider).disconnect().then((_) {
+      ref.read(bleHandshakeControllerProvider.notifier).reset(); // 이전 연결 상태 캐시 초기화
+      ref.read(bleServiceProvider).manualDisconnect().then((_) {
         _controller.loadFlutterAsset('ui_design/ble_connect/code.html');
       });
       return;
@@ -1664,6 +1711,13 @@ class _WebViewHomeScreenState extends ConsumerState<WebViewHomeScreen> {
         _injectTimeoutTimer?.cancel();
         _mockWaitTimer?.cancel();
 
+        final isConnected = ref.read(bleServiceProvider).isConnected;
+        if (!isConnected) {
+          print("[DEBUG] main.dart: Injection aborted due to disconnection. Skipping complete modal.");
+          _controller.runJavaScript("try { showToast('통신 단절로 인해 주입 상태를 알 수 없습니다.'); } catch(e) {}");
+          return;
+        }
+
         if (_currentUrl.contains("dashboard/code.html")) {
           // 이미 대시보드 화면인 경우: 깜빡임 없이 즉시 완료 모달 팝업 가동
           _controller.runJavaScript("try { openModal('complete'); } catch(e) {}");
@@ -1706,17 +1760,25 @@ class _WebViewHomeScreenState extends ConsumerState<WebViewHomeScreen> {
             return;
           } else {
             if (context.mounted) {
-              await SystemNavigator.pop();
+              FlutterForegroundTask.minimizeApp();
             }
             return;
           }
+        }
+
+        // 주요 루트 화면(장치 스캔)에서는 뒤로가기 히스토리 무시하고 앱 최소화
+        if (_currentUrl.contains("ble_connect/code.html")) {
+          if (context.mounted) {
+            FlutterForegroundTask.minimizeApp();
+          }
+          return;
         }
 
         if (await _controller.canGoBack()) {
           await _controller.goBack();
         } else {
           if (context.mounted) {
-            await SystemNavigator.pop();
+            FlutterForegroundTask.minimizeApp();
           }
         }
       },

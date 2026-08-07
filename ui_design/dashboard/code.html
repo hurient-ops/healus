@@ -640,7 +640,7 @@
             clearCompletionSimulation();
             globalState.isInjecting = false;
             updateInjectingBadge();
-            openModal('complete');
+            // openModal('complete'); Flutter에서 제어하도록 위임
           } else if (updatedInjecting && !globalState.isInjecting) {
             globalState.isInjecting = true;
             updateInjectingBadge();
@@ -663,7 +663,7 @@
       if (changedInjecting) {
         if (!isInjecting) {
           clearCompletionSimulation();
-          openModal('complete');
+          // openModal('complete'); Flutter에서 제어하도록 위임
         } else {
           scheduleCompletionSimulation();
         }

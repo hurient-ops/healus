@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'ble_service_interface.dart';
 import 'hardware_ble_service.dart';
 import 'mock_ble_service.dart';
@@ -37,6 +38,9 @@ class BleServiceManager implements BleService {
   
   StreamSubscription? _connectionSub;
   StreamSubscription? _packetsSub;
+  bool _isReconnecting = false;
+  String? _savedMacAddress;
+  String? get savedMacAddress => _savedMacAddress;
 
   BleServiceManager(this._ref) {
     // 최초 상태 로드
@@ -99,6 +103,34 @@ class BleServiceManager implements BleService {
         if (!_connectionStateController.isClosed) {
           _connectionStateController.add(connected);
         }
+        
+        // 비정상 단절 시 재연결 루프 (사용자 명시적 해제가 아닌 경우)
+        if (!connected && _savedMacAddress != null) {
+          if (_isReconnecting) {
+            print("BLE 자동 재연결 루프가 이미 동작 중입니다. 중복 실행 방지.");
+          } else {
+            print("비정상 BLE 연결 단절 감지 - 백그라운드 무한 대기 자동 재연결 가동");
+            _isReconnecting = true;
+            () async {
+              while (!hw.isConnected && _savedMacAddress != null && _isReconnecting) {
+                try {
+                  print("BLE 자동 재연결 (OS Background) 대기 중... ($_savedMacAddress)");
+                  // 안드로이드 OS 자체의 Background Daemon 에 백업(autoConnect: true)을 맡겨 무한 대기
+                  await hw.connect(_savedMacAddress!, autoConnect: true);
+                  
+                  if (hw.isConnected) {
+                    print("BLE 자동 재연결 성공!");
+                    break;
+                  }
+                } catch (e) {
+                  print("BLE 자동 재연결 에러, 5초 후 재시도: $e");
+                  await Future.delayed(const Duration(seconds: 5));
+                }
+              }
+              _isReconnecting = false;
+            }();
+          }
+        }
       });
 
       _packetsSub = hw.receivedPacketsStream.listen((packet) {
@@ -127,17 +159,41 @@ class BleServiceManager implements BleService {
   bool get isTestMode => _currentService.isTestMode;
 
   @override
-  Future<void> connect(String macAddress) async {
-    await _currentService.connect(macAddress);
+  Future<void> connect(String macAddress, {bool autoConnect = false}) async {
+    _savedMacAddress = macAddress;
+    await _currentService.connect(macAddress, autoConnect: autoConnect);
+    // 연결 성공 시 영구 저장소에 식별자 저장
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('saved_ble_mac', macAddress);
+  }
+
+  @override
+  Future<bool> scanForDevice(String macAddress) async {
+    _savedMacAddress = macAddress;
+    bool found = await _currentService.scanForDevice(macAddress);
+    return found;
   }
 
   @override
   Future<void> disconnect() async {
+    _savedMacAddress = null;
+    _isReconnecting = false;
     if (!isTestMode) {
       await _currentService.disconnect();
     } else {
       print("[DEBUG] BleServiceManager.disconnect: ignored disconnect call because we are in test mode");
     }
+  }
+
+  /// 사용자가 설정 화면에서 명시적으로 연결을 끊을 때 호출하는 메서드
+  Future<void> manualDisconnect() async {
+    print("사용자 명시적 BLE 연결 해제 요청");
+    _savedMacAddress = null;
+    
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('saved_ble_mac');
+    
+    await disconnect();
   }
 
   @override
@@ -174,6 +230,7 @@ class BleServiceManager implements BleService {
   void dispose() {
     _connectionSub?.cancel();
     _packetsSub?.cancel();
+    _isReconnecting = false;
     _connectionStateController.close();
     _receivedPacketsController.close();
   }

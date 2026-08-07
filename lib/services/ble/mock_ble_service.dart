@@ -64,7 +64,7 @@ class MockBleService implements BleService {
   }
 
   @override
-  Future<void> connect(String macAddress) async {
+  Future<void> connect(String macAddress, {bool autoConnect = false}) async {
     _isConnected = true;
     _connectionStateController.add(true);
     print("Mock BLE 서비스 연결 가동 (테스트 모드 진입)");
@@ -74,11 +74,23 @@ class MockBleService implements BleService {
   }
 
   @override
+  Future<bool> scanForDevice(String macAddress) async {
+    print("Mock BLE 서비스: 스캔 후 기기 발견 대기 중...");
+    await Future.delayed(const Duration(seconds: 3));
+    return true;
+  }
+
+  @override
   Future<void> disconnect() async {
     _injectionTimer?.cancel();
     _isConnected = false;
     _connectionStateController.add(false);
     print("Mock BLE 서비스 연결 해제");
+  }
+
+  @override
+  Future<void> manualDisconnect() async {
+    await disconnect();
   }
 
   @override

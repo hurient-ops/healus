@@ -14,11 +14,18 @@ abstract class BleService {
   /// 테스트 모드(Mock Mode) 활성화 여부
   bool get isTestMode;
 
-  /// 특정 장비로 BLE 연결 시도
-  Future<void> connect(String macAddress);
+  /// [macAddress] 안드로이드는 MAC (XX:XX:XX:XX:XX:XX), iOS는 UUID
+  /// [autoConnect] true인 경우 안드로이드 시스템 백그라운드 무한 대기 자동 재연결 사용 (타임아웃 없음)
+  Future<void> connect(String macAddress, {bool autoConnect = false});
+
+  /// 기기가 스캔될 때까지 대기하며, 발견되면 true 반환 (타임아웃 시 false)
+  Future<bool> scanForDevice(String macAddress);
 
   /// BLE 연결 해제
   Future<void> disconnect();
+
+  /// 사용자의 명시적 조작에 의한 완전 연결 해제 (자동 재연결 방지용)
+  Future<void> manualDisconnect();
 
   /// 20Byte 논리 패킷을 10Byte씩 분할 송신
   Future<void> sendPacket(List<int> packet);

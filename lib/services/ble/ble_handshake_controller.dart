@@ -43,6 +43,11 @@ class BleHandshakeController extends StateNotifier<BleHandshakeState> {
 
   BleHandshakeController(this._ref) : super(BleHandshakeState());
 
+  /// 상태를 초기화하여 이전 연결 성공(isSuccess=true) 등 캐시된 값을 정리합니다.
+  void reset() {
+    state = BleHandshakeState();
+  }
+
   /// 특정 MAC 주소를 가진 인슐린펌프 기기에 연결하고 규격서 사양의 세션을 시작합니다.
   Future<bool> connectAndHandshake(String macAddress) async {
     state = BleHandshakeState(isConnecting: true);
@@ -92,6 +97,13 @@ class BleHandshakeController extends StateNotifier<BleHandshakeState> {
       return true;
     }
 
+    return await executeHandshakeOnly();
+  }
+
+  /// 이미 물리적으로 연결된 상태에서 핸드셰이크 절차만 단독으로 수행합니다 (백그라운드 자동 재연결 용).
+  Future<bool> executeHandshakeOnly() async {
+    final bleService = _ref.read(bleServiceProvider);
+    
     // 2. BLE 핸드셰이킹 시나리오 수행
     state = state.copyWith(isConnecting: false, isHandshaking: true);
     

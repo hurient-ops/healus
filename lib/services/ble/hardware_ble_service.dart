@@ -84,9 +84,15 @@ class HardwareBleService implements BleService {
   }
 
   @override
-  Future<void> connect(String macAddress) async {
+  Future<void> connect(String macAddress, {bool autoConnect = false}) async {
     if (_isConnecting || _isConnected) return;
     _isConnecting = true;
+
+    // 이전 연결의 찌꺼기 구독(Subscription)이 남아있을 수 있으므로 확실히 정리
+    _notifySub?.cancel();
+    _connectionStateSub?.cancel();
+    _notifySub = null;
+    _connectionStateSub = null;
 
     final deviceId = DeviceIdentifier(macAddress);
     _device = BluetoothDevice.fromId(deviceId.str);
@@ -94,20 +100,23 @@ class HardwareBleService implements BleService {
     final stopwatch = Stopwatch()..start();
 
     try {
-      // 기존 연결이 혹시 꼬여있을 수 있으므로 안전하게 연결 해제 시도
-      try {
-        await _device!.disconnect();
-      } catch (_) {}
+      // (안드로이드 OS 레벨의 BLE 스택 꼬임(Deadlock)을 방지하기 위해 연결 전 불필요한 disconnect() 호출을 완전히 제거함)
 
       // 1. 최대 누적 대기시간 15초 타임아웃 설정 (Hold 플래그 확인)
       // 실제 BLE 통신 환경에서는 기기 스캔 및 서비스 디스커버리 등에서 3초 이상이 소요되는 경우가 많으므로 넉넉하게 15초 부여
+      // autoConnect == true 이면 시스템 백그라운드 재연결 무한 대기를 위해 타임아웃을 걸지 않음.
       final connectTimeout = _bypassTimeoutHold ? const Duration(days: 365) : const Duration(seconds: 15);
-      await _device!.connect(timeout: connectTimeout, autoConnect: false).timeout(
-        connectTimeout,
-        onTimeout: () {
-          throw TimeoutException("BLE 연결 대기 시간을 초과하였습니다.");
-        },
-      );
+      
+      if (autoConnect) {
+        await _device!.connect(autoConnect: true);
+      } else {
+        await _device!.connect(timeout: connectTimeout, autoConnect: false).timeout(
+          connectTimeout,
+          onTimeout: () {
+            throw TimeoutException("BLE 연결 대기 시간을 초과하였습니다.");
+          },
+        );
+      }
 
       // 2. 서비스 검색
       List<BluetoothService> services = await _device!.discoverServices();
@@ -173,6 +182,52 @@ class HardwareBleService implements BleService {
   }
 
   @override
+  Future<bool> scanForDevice(String macAddress) async {
+    bool found = false;
+    StreamSubscription? subscription;
+    Completer<bool> completer = Completer<bool>();
+
+    try {
+      print("[BLE] 자동 재연결을 위해 $macAddress 스캔 시작...");
+      
+      subscription = FlutterBluePlus.scanResults.listen((results) {
+        if (results.any((r) => r.device.remoteId.str == macAddress)) {
+          if (!completer.isCompleted) {
+            found = true;
+            completer.complete(true);
+          }
+        }
+      });
+
+      await FlutterBluePlus.startScan(
+        withRemoteIds: [macAddress],
+        timeout: const Duration(seconds: 15),
+      );
+      
+      // 15초 대기용 타임아웃 레이스 (안전 장치)
+      Timer timeoutTimer = Timer(const Duration(seconds: 15), () {
+        if (!completer.isCompleted) {
+          completer.complete(false);
+        }
+      });
+
+      // 스캔이 완료될 때까지 대기 (타임아웃 15초 도달 또는 찾았을 때)
+      await completer.future;
+      timeoutTimer.cancel();
+      
+    } catch (e) {
+      print("[BLE] 스캔 중 오류: $e");
+    } finally {
+      subscription?.cancel();
+      try {
+        await FlutterBluePlus.stopScan();
+      } catch (_) {}
+    }
+
+    return found;
+  }
+
+  @override
   Future<void> disconnect() async {
     _notifySub?.cancel();
     _connectionStateSub?.cancel();
@@ -186,6 +241,11 @@ class HardwareBleService implements BleService {
     _isConnected = false;
     _connectionStateController.add(false);
     print("BLE 연결이 강제 해제되었습니다.");
+  }
+
+  @override
+  Future<void> manualDisconnect() async {
+    await disconnect();
   }
 
   @override

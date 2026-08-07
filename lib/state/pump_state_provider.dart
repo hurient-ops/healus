@@ -163,6 +163,15 @@ class PumpStateData {
 class PumpStateNotifier extends StateNotifier<PumpStateData> {
   PumpStateNotifier() : super(PumpStateData(basalRates: List.filled(24, 0.0)));
 
+  /// 블루투스 연결이 비정상적으로 끊어졌을 때 호출되어 UI를 대기 상태로 강제 복구합니다.
+  void resetInjectingState() {
+    print("[DEBUG] PumpStateNotifier: 연결 단절로 인한 UI 강제 초기화 (대기 상태 전환)");
+    state = state.copyWith(
+      connectionState: PumpState.idle,
+      isPumpInjecting: false,
+    );
+  }
+
   void _syncPumpStatusToCloud(PumpStateData newState) {
     final pumpPid = CloudSyncService().currentPumpPid ?? 'UNKNOWN_PID';
     ApiClient().postPumpStatus(newState.batteryLevel, newState.insulinRemaining, pumpPid);
